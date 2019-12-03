@@ -30,8 +30,7 @@ class ToDoHeap {
 	private void view_tree() { heap.display(); }
 
 	// Construct a heap from a text file
-	// use constructor??????????????????????????????????????????????????????????
-	private void constructHeap(String file) {}
+	private void constructHeap(String path) {}
 
 	// Store a heap as a text file.
 	private void storeHeap() {}
@@ -41,7 +40,7 @@ class ToDoHeap {
 		// Commands:
 		// new [name], open [name], heaps, save?, quit
 		// add, delete ([item]), reorder?, moveToTop?
-		// check, viewtree
+		// peek, viewtree
 	}
 
 	// An item in the heap that stores its name and all items of lower priority.
@@ -79,9 +78,8 @@ class ToDoHeap {
 			if (N == 0) return;
 			heapArray[0] = heapArray[--N];
 			heapArray[N] = null;
-			if (heapArray.length > MIN_ARRAY_SIZE && N <= (heapArray.length >> 2)) {
-				resize(heapArray.length >> 1);
-			}
+			int len = heapArray.length;
+			if (len > MIN_ARRAY_SIZE && N <= (len >> 2)) resize(len >> 1);
 			siftDown(0);
 		}
 
@@ -91,34 +89,66 @@ class ToDoHeap {
 			return heapArray[0].name;
 		}
 
+		// Print the heap in a nicely formatted style
+		public void display() {}
+
+		private void display(int i, boolean isLastChild) {}
+
 		// Sift up from the given index
 		private void siftUp(int i) {
 			if (i == 0) return;
 			int j = parent(i);
 			Item item = heapArray[i];
 			Item parent = heapArray[j];
-			Item X = greater(item, parent);
-			if (X == parent) return;
+			if (isHigher(parent, item)) return;
 			swap(i, j);
 			siftUp(j);
 		}
 
 		// Sift down from the given index
-		private void siftDown(int i) {}
-
-		// If the two items are comparable, return the item of greater priority.
-		// Otherwise, return the item of greater priority selected by the user.
-		private Item greater(Item A, Item B) {
-			if (A.lowerPriority.contains(B)) return A;
-			if (B.lowerPriority.contains(A)) return B;
-			Item X = query(A, B);
-			Item Y = (X == A) ? B : A;
-			setGreater(X, Y);
-			return X;
+		private void siftDown(int i) {
+			int j = left(i);
+			if (j >= N) return;
+			Item item = heapArray[i];
+			Item leftChild = heapArray[j];
+			if (isHigher(item, leftChild)) {
+				if (j == N - 1) return;
+				int k = right(i);
+				Item rightChild = heapArray[k];
+				if (isHigher(item, rightChild)) return;
+				swap(i, k);
+				siftDown(k);
+				return;
+			}
+			if (j == N - 1) {
+				swap(i, j);
+				siftDown(j);
+				return;
+			}
+			int k = right(i);
+			Item rightChild = heapArray[k];
+			if (isHigher(item, rightChild) || isHigher(leftChild, rightChild)) {
+				swap(i, j);
+				siftDown(j);
+				return;
+			}
+			swap(i, k);
+			siftDown(k);
 		}
 
-		// Set the priority of item A to be greater than that of item B
-		private void setGreater(Item A, Item B) {
+		// Is item A of higher priority than item B?  If the two items are not
+		// comparable, their relative priority is determined by the user.
+		private boolean isHigher(Item A, Item B) {
+			if (A.lowerPriority.contains(B)) return true;
+			if (B.lowerPriority.contains(A)) return false;
+			Item X = query(A, B);
+			Item Y = (X == A) ? B : A;
+			setHigher(X, Y);
+			return (X == A);
+		}
+
+		// Set the priority of item A to be higher than that of item B
+		private void setHigher(Item A, Item B) {
 			A.lowerPriority.add(B);
 			for (Item X : B.lowerPriority) A.lowerPriority.add(X);
 		}
@@ -168,11 +198,19 @@ class ToDoHeap {
 	private static int right(int i) { return (i << 1) + 2; }
 
 	public static void main(String[] args) {
-		ToDoHeap heap = new ToDoHeap("Keith's heap");
-
-		// test
-		Item A = new Item("green eggs");
-		Item B = new Item("ham");
-		query(A, B);
+		Scanner input = new Scanner(System.in);
+		System.out.println("Enter heap name");
+		String heapName = input.nextLine();
+		ToDoHeap heap = new ToDoHeap(heapName);
+		while (true) {
+			System.out.println("What would you like to do?");
+			String command = input.nextLine();
+			if (command.equals("add")) {
+				System.out.println("Enter name of item to add:");
+				String name = input.nextLine();
+				heap.add(name);
+			} else if (command.equals("delete") heap.delete();
+			else if (command.equals("quit")) break;
+		}
 	}
 }
