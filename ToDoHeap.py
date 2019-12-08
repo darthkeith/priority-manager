@@ -1,14 +1,24 @@
 """
-An interactive program that stores items in a heap with priority chosen by the
-user such that the user makes as few comparisons as possible.
-
-Commands:
-[copy from help function]
+This is a command line program that stores items in a heap with priority chosen
+by the user such that the user makes as few comparisons as possible.
 """
 
 import os
+from math import log10
 
-DATA_DIR = "heap_data/"
+DATA_FILE = "heap_data"
+HELP = """
+peek OR <Enter> - print the item of highest priority
+
+add [name] - add item with given name
+
+delete or del - delete the item of highest priority
+
+list OR ls - display all items
+
+quit OR q - quit the program
+
+help - list available commands"""
 
 class Item:
     """"An item in a heap that stores its name and all items of lower priority"""
@@ -17,31 +27,32 @@ class Item:
         self.name = name
         self.lower_priority = set()
 
+    # Set the priority to be higher than the given item
+    def set_higher(self, item):
+        self.lower_priority.add(item)
+        for X in item.lower_priority:
+            self.lower_priority.add(X)
+
 class ToDoHeap:
     """Heap data structure supporting all required operations"""
 
-    def __init__(self, name, new=False):
-        """Create an empty heap or reconstruct one from a text file"""
-        self.name = name
+    # Create an empty heap or reconstruct one from a file if it exists
+    def __init__(self):
         self.heap = []
-        if new:
+        if not os.path.isfile(DATA_FILE):
             return
-        path = DATA_DIR + name + ".heap"
-        with open(path, "r") as f:
+        with open(DATA_FILE, "r") as f:
             n = int(f.readline())
             for i in range(n):
-                item = Item(f.readline())
+                item = Item(f.readline().strip())
                 self.heap.append(item)
             for item in self.heap:
-                indices = (int(s) for s in f.readline.split())
+                indices = (int(s) for s in f.readline().split())
                 for i in indices:
                     item.lower_priority.add(self.heap[i])
 
+    # Store the current heap as a file so it can be reconstructed
     def save(self):
-        """Store the current heap as a file so it can be reconstructed"""
-        if not os.path.isdir(DATA_DIR):
-            os.mkdir(DATA_DIR)
-        path = DATA_DIR + self.name + ".heap"
         text = str(len(self.heap))
         index = {}
         for i, item in enumerate(self.heap):
@@ -51,25 +62,25 @@ class ToDoHeap:
             text += "\n"
             for x in item.lower_priority:
                 text += str(index[x]) + " "
-        with open(path, "w") as f:
+        with open(DATA_FILE, "w") as f:
             f.write(text + "\n")
 
+    # Print the name of the item at the top of the heap
     def peek(self):
-        """Print the name of the item at the top of the heap"""
         if self.heap:
             print(self.heap[0].name)
         else:
             print("Heap is empty.")
 
+    # Add an item to the heap
     def add(self, name):
-        """Add an item to the heap"""
         n = len(self.heap)
         self.heap.append(Item(name))
         self._sift_up(n)
         print("Added: " + name)
 
+    # Delete the item at the top of the heap
     def delete(self):
-        """Delete the item at the top of the heap"""
         if not self.heap:
             print("Heap is empty.")
             return
@@ -79,20 +90,23 @@ class ToDoHeap:
         self._sift_down(0)
         print("Deleted: " + name)
 
+    # Print a nicely formatted binary tree
     def display(self):
-        """Print a nicely formatted binary tree"""
         if not self.heap:
             print("Heap is empty.")
             return
-        print("\n\u2553" + self.heap[0].name)
+        max_digits = int(log10(len(self.heap))) + 1
+        print("\n{:<{}}\u2553".format(0, max_digits) + self.heap[0].name)
+        line = 1
         if len(self.heap) > 1:
-            self._display(1, "")
+            line = self._display(1, line, "", max_digits)
         if len(self.heap) > 2:
-            self._display(2, "")
+            self._display(2, line, "", max_digits)
 
-    # Recursive helper function for display
-    def _display(self, i, prefix):
-        print(prefix, end="")
+    # Recursive helper function for display, returns next line number
+    def _display(self, i, line, prefix, max_digits):
+        print("{:<{}}".format(line, max_digits) + prefix, end="")
+        line += 1
         isLastChild = ((i & 1) == 0) or (i == len(self.heap) - 1)
         if isLastChild:
             print("\u255a", end="")
@@ -104,26 +118,37 @@ class ToDoHeap:
             print("\u2550" + self.heap[i].name)
         else:
             print("\u2566" + self.heap[i].name)
-            self._display(self._left(i), prefix)
+            line = self._display(get_left(i), line, prefix, max_digits)
             if self._has_two_children(i):
-                self._display(self._right(i), prefix)
+                line = self._display(get_right(i), line, prefix, max_digits)
+        return line
 
     # Sift up from the given index
     def _sift_up(self, i):
         if (i == 0):
             return
-        parent = self._parent(i)
+        parent = get_parent(i)
         if self._is_higher(i, parent):
             self._swap(i, parent)
             self._sift_up(parent)
+        else:
+            self._set_ancestors(parent, self.heap[i])
+
+    # Set the priority of all ancestors of a node to be higher than given item
+    def _set_ancestors(self, i, item):
+        if (i == 0):
+            return
+        p = get_parent(i)
+        self.heap[p].set_higher(item)
+        self._set_ancestors(p, item)
 
     # Sift down from the given index
     def _sift_down(self, i):
         if self._is_leaf(i):
             return
-        left = self._left(i)
+        left = get_left(i)
         if self._has_two_children(i):
-            right = self._right(i)
+            right = get_right(i)
             if self._is_higher(left, i):
                 if self._is_higher(right, left):
                     self._swap(right, i)
@@ -147,102 +172,91 @@ class ToDoHeap:
             return True
         if A in B.lower_priority:
             return False
-        X = self._choice(A, B)
+        X = choice(A, B)
         Y = B if X == A else A
-        self._set_higher(X, Y)
+        X.set_higher(Y)
         return X == A
-
-    # Set the priority of item A to be higher than that of item B
-    def _set_higher(self, A, B):
-        A.lower_priority.add(B)
-        for X in B.lower_priority:
-            A.lower_priority.add(X)
 
     # Swap the positions of two items in the heap
     def _swap(self, i, j):
         self.heap[i], self.heap[j] = self.heap[j], self.heap[i]
 
-    # Index of parent node in array
-    def _parent(self, i):
-        return (i - 1) >> 1
-
-    # Index of left child node in array
-    def _left(self, i):
-        return (i << 1) + 1
-
-    # Index of right child node in array
-    def _right(self, i):
-        return (i << 1) + 2
-
     # Is the node a leaf?
     def _is_leaf(self, i):
-        return self._left(i) >= len(self.heap)
+        return get_left(i) >= len(self.heap)
 
     # Does the node have two children?
     def _has_two_children(self, i):
-        return self._right(i) < len(self.heap)
+        return get_right(i) < len(self.heap)
 
-    # Ask the user to select the item of greater priority
-    def _choice(self, A, B):
-        print("1. " + A.name)
-        print("2. " + B.name)
-        while True:
-            s = input("Select: ")
-            if not s:
-                continue
-            c = s[0]
-            if c == "1":
-                X = A
-            elif c == "2":
-                X = B
-            else:
-                continue
-            return X
+# Index of parent node in array
+def get_parent(i):
+    return (i - 1) >> 1
 
+# Index of left child node in array
+def get_left(i):
+    return (i << 1) + 1
+
+# Index of right child node in array
+def get_right(i):
+    return (i << 1) + 2
+
+# Ask the user to select the item of greater priority
+def choice(A, B):
+    print("1. " + A.name)
+    print("2. " + B.name)
+    while True:
+        s = input("Select: ")
+        if not s:
+            continue
+        c = s[0]
+        if c == "1":
+            X = A
+        elif c == "2":
+            X = B
+        else:
+            continue
+        return X
+
+# Parse user input for command and optional string after command
+def get_line():
+    line = input("\n>>> ").split(None, 1)
+    if line:
+        command = line[0].lower()
+        string = ""
+        if len(line) > 1:
+            string = line[1]
+        return command, string
+    return "", ""
+
+# Ask the user to enter a name
 def get_name():
-    """Ask the user to enter a name"""
     while True:
         name = input("Enter name: ")
         if name:
             return name
 
-def help():
-    """Display a list of all available commands"""
-    # Commands:
-    # new [name], open [name], listheaps, delete [heap], save?, quit, clean?
-    # add, delete ([item]), reorder?, moveToTop?
-    # peek, view
-    pass
-
 if __name__ == "__main__":
-    heap = ToDoHeap(input("Enter heap name: "), new=True)
+    heap = ToDoHeap()
+    heap.peek()
     while True:
-        print()
-        line = input(">>> ").split(None, 1)
-        if line:
-            command = line[0].lower()
-            string = ""
-            if len(line) > 1:
-                string = line[1]
-        else:
-            continue
-        
-        if command == "peek":
+        command, string = get_line()        
+        if command in ("peek", ""):
             heap.peek()
         elif command == "add":
             if not string:
                 string = get_name()
             heap.add(string)
-        elif command == "del":
+        elif command in ("delete", "del"):
             heap.delete()
-        elif command == "view":
+        elif command in ("list", "ls"):
             heap.display()
-        elif command == "save":
-            heap.save()
-        elif command == "load":
-            pass
         elif command in ("quit", "q"):
+            heap.save()
             break
+        elif command == "help":
+            print(HELP)
         else:
             print("\nCommand not recognized.")
             print('Type "help" for list of available commands.')
+
