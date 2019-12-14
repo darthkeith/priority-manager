@@ -85,17 +85,17 @@ class ToDoHeap:
 
     # Store the current heap as a file so it can be reconstructed
     def save(self, filename):
-        text = str(len(self.heap))
+        text = str(len(self.heap)) + "\n"
         index = {}
         for i, item in enumerate(self.heap):
-            text += "\n" + item.name
+            text += item.name + "\n"
             index[item] = i
         for item in self.heap:
-            text += "\n"
             for X in item.lower_priority:
                 text += str(index[X]) + " "
+            text += "\n"
         with open(filename, "w") as f:
-            f.write(text + "\n")
+            f.write(text)
 
     # Print the name of the item at the top of the heap
     def peek(self):
@@ -118,15 +118,20 @@ class ToDoHeap:
             return False
         i = self._array_index(i)
         item = self.heap[i]
+        self._cleanup(item)
         self.heap[i] = self.heap[-1]
         del self.heap[-1]
         if i == len(self.heap):
-            pass        
-        elif (i == 0 or self._is_higher(parent(i), i)):
-            self._sift_down(i)
+            pass
+        elif (i == 0):
+            self._sift_down(0)
         else:
-            self._sift_up(i)
-        self._cleanup(item)
+            p = parent(i)
+            if self._is_higher(p, i):
+                self._order_ancestors(p, self.heap[i])
+                self._sift_down(i)
+            else:
+                self._sift_up(i)
         print("Deleted: " + item.name)
         return True
 
