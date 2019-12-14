@@ -1,30 +1,43 @@
 """
-This is a command line program that stores items in a heap with priority chosen
-by the user such that the user makes as few comparisons as possible.
+This is a command line program that stores items in a binary heap with priority
+chosen by the user such that the user makes as few comparisons as possible.
+
+To start a new heap:
+python ToDoHeap.py
+
+To open a saved heap:
+python ToDoHeap.py [filename]
+
+A heap can be saved when quitting.  If saving a new heap, a file will be
+created with the ".heap" extension.
 """
 
-import os
+from os.path import isfile
 from sys import argv
 from math import log10
 from pathvalidate import is_valid_filename
 
 HELP = """
-peek OR <Enter> - show the item of highest priority
+Available commands:
 
-list OR ls - display all items
+    peek OR <Enter> - Show the item of highest priority
 
-add [name] - add item with given name
+    list OR ls - Display all items
 
-delete or del [index] - delete the item at the given index, or the item of
-                        highest priority if no index is given
+    add [name] - Add item with given name
 
-rename Or rn [index] [name] - rename the item at the given index
+    delete OR del [index] - Delete the item at index (0 by default)
 
-quit OR q - save and quit the program
+    reorder OR ro [index] - Reorder the item at index 
 
-help - list available commands
-"""
+    rename OR rn [index] [name] - Rename the item at index
+
+    quit OR q - Save and quit the program
+
+    help - List available commands"""
 EMPTY_HEAP = "Heap is empty."
+UNRECOGNIZED = """Command not recognized.
+Type "help" for list of available commands."""
 
 class Item:
     """"An item in a heap that stores its name and all items of lower priority"""
@@ -102,10 +115,9 @@ class ToDoHeap:
     def delete(self, i):
         if not self.heap:
             print(EMPTY_HEAP)
-            return
+            return False
         i = self._array_index(i)
         item = self.heap[i]
-        name = item.name
         self.heap[i] = self.heap[-1]
         del self.heap[-1]
         if i == len(self.heap):
@@ -114,8 +126,34 @@ class ToDoHeap:
             self._sift_down(i)
         else:
             self._sift_up(i)
-        self._cleanup(0, item)
-        print("Deleted: " + name)
+        self._cleanup(item)
+        print("Deleted: " + item.name)
+        return True
+
+    # Reset the priority of the item at the given index
+    def reorder(self, i):
+        i = self._array_index(i)
+        item = self.heap[i]
+        item.lower_priority = set()
+        self._cleanup(item)
+        if (i == 0):
+            self._sift_down(0)
+        else:
+            p = parent(i)
+            if self._is_higher(p, i):
+                self._order_ancestors(p, item)
+                self._sift_down(i)
+            else:
+                self._sift_up(i)
+        print("Reset priority: " + item.name)
+
+    # Rename the item at given index
+    def rename(self, i, name):
+        i = self._array_index(i)
+        old_name = self.heap[i].name
+        self.heap[i].name = name
+        print("Renamed: " + old_name)
+        return old_name != name
 
     # Print a nicely formatted binary tree
     def display(self):
@@ -150,13 +188,6 @@ class ToDoHeap:
                 line = self._display(right(i), line, prefix, max_digits)
         return line
 
-    # Rename the item at given index
-    def rename(self, i, name):
-        if self.is_valid_index(i):
-            i = self._array_index(i)
-            print("Renamed: " + self.heap[i].name)
-            self.heap[i].name = name
-
     # Is this a valid index in the array?
     def is_valid_index(self, i):
         if (i < len(self.heap) and i >= 0):
@@ -173,15 +204,14 @@ class ToDoHeap:
             self._swap(i, p)
             self._sift_up(p)
         else:
-            self._set_ancestors(p, self.heap[i])
+            item = self.heap[i]
+            self._order_ancestors(p, item)
 
-    # Set the priority of all ancestors of a node to be higher than given item
-    def _set_ancestors(self, i, item):
-        if (i == 0):
-            return
-        p = parent(i)
-        self.heap[p].set_higher(item)
-        self._set_ancestors(p, item)
+    # Set the priority of all ancestors of index p to be higher than item
+    def _order_ancestors(self, p, item):
+        while (p != 0):
+            p = parent(p)
+            self.heap[p].set_higher(item)
 
     # Sift down from the given index
     def _sift_down(self, i):
@@ -216,7 +246,7 @@ class ToDoHeap:
         print("1. " + A.name)
         print("2. " + B.name)
         while True:
-            s = input("Select: ")
+            s = input("Higher priority: ")
             if not s:
                 continue
             c = s[0]
@@ -228,15 +258,15 @@ class ToDoHeap:
                 return False
 
     # Remove item from all other items' lower priority sets
-    def _cleanup(self, i, item):
+    def _cleanup(self, item, i=0):
         if i >= len(self.heap):
             return
         X = self.heap[i]
         if not (item in X.lower_priority):
             return
         X.lower_priority.remove(item)
-        self._cleanup(left(i), item)
-        self._cleanup(right(i), item)
+        self._cleanup(item, left(i))
+        self._cleanup(item, right(i))
 
     # Convert a node's index in the printed tree (preorder index) to its index
     # in the array (level order index)
@@ -293,6 +323,7 @@ def get_int(string):
 # Get a non-empty name
 def get_name(name):
     while True:
+        name = name.strip()
         if name:
             return name
         name = input("Enter name: ")
@@ -303,7 +334,7 @@ def get_arg():
         filename = argv[1]
         if not is_valid_filename(filename):
             print("Invalid filename.")
-        elif not os.path.isfile(filename):
+        elif not isfile(filename):
             print("File {} not found.".format(filename))
         else:
             return filename
@@ -348,17 +379,21 @@ if __name__ == "__main__":
             if string:
                 i, _ = get_int(string)
                 if heap.is_valid_index(i):
-                    heap.delete(i)
-                    changed = True
-            else:
-                heap.delete(0)
+                    if heap.delete(i):
+                        changed = True
+            elif heap.delete(0):
+                changed = True
+        elif command in ("reorder", "ro"):
+            i, _ = get_int(string)
+            if heap.is_valid_index(i):
+                heap.reorder(i)
                 changed = True
         elif command in ("rename", "rn"):
             i, string = get_int(string)
             if heap.is_valid_index(i):
                 name = get_name(string)
-                heap.rename(i, name)
-                changed = True
+                if heap.rename(i, name):
+                    changed = True
         elif command in ("quit", "q"):
             if changed and save_query():
                 if not filename:
@@ -368,6 +403,5 @@ if __name__ == "__main__":
         elif command == "help":
             print(HELP)
         else:
-            print("\nCommand not recognized.")
-            print('Type "help" for list of available commands.')
+            print(UNRECOGNIZED)
 
