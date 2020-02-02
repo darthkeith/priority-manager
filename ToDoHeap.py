@@ -17,11 +17,11 @@ HELP = """
 
     list/ls - Display all items with their indices
 
-    add [name] - Add item with name
+    add [name] - Add item
 
     delete/del [index] - Delete item at index (0 by default)
 
-    move/mv [index] - Move item to new position 
+    move/mv [index] - Move item at index to new position 
 
     rename/rn [index] [name] - Rename item at index
 
