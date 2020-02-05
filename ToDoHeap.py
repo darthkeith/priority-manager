@@ -11,6 +11,23 @@ from os.path import isfile
 from sys import argv
 from math import log10
 from pathvalidate import is_valid_filename
+from colorama import init # Makes ANSI escape codes work on Windows
+
+# Escape codes for changing color
+BACK0 = "\x1b[40m"  # Background color for even lines
+BACK1 = "\x1b[100m" # Background color for odd lines
+INDEX = "\x1b[32m"  # Color of indices
+TREE = "\x1b[31m"   # Color of tree
+TEXT = "\x1b[37m"   # Color of text in tree
+RESET = "\x1b[0m"   # Reset colors
+END = "\x1b[K"      # Extend background color to end of line
+
+# Box-drawing characters
+BOX_L = "\u255a"    # L
+BOX_t = "\u2560"    # |-
+BOX_VERT = "\u2551" # |
+BOX_DASH = "\u2550" # -
+BOX_T = "\u2566"    # T
 
 HELP = """
     peek/<Enter> - Show item of highest priority
@@ -68,18 +85,22 @@ def build_heap(f):
 
 # Helper function to display heap
 def display(node, is_last_child, line, digits, prefix):
-    print("{:<{}}".format(line, digits) + prefix, end="")
+    if (line & 1) == 0:
+        print(BACK0, end="")
+    else:
+        print(BACK1, end="")
+    print(INDEX + "{:<{}}".format(line, digits) + TREE + prefix, end="")
     line += 1
     c = " "
     if is_last_child:
-        print("\u255a", end="") # L
+        print(BOX_L, end="")
     else:
-        print("\u2560", end="") # |-
-        c = "\u2551"            # |
+        print(BOX_t, end="")
+        c = BOX_VERT
     if node.left == None:
-        print("\u2550" + node.item) # -
+        print(BOX_DASH + TEXT + node.item + END)
     else:
-        print("\u2566" + node.item) # T
+        print(BOX_T + TEXT + node.item + END)
         prefix += c
         is_last_child = node.right == None
         line = display(node.left, is_last_child, line, digits, prefix)
@@ -205,6 +226,7 @@ class ToDoHeap:
         if self.root:
             digits =  1 + int(log10(self.root.size))
             display(self.root, True, 0, digits, "")
+            print(RESET, end="")
         else:
             print(EMPTY_HEAP)
 
@@ -224,8 +246,11 @@ class ToDoHeap:
     # Delete the item at given index and add it back into the heap
     def move(self, i):
         self.root, item = delete(self.root, 0, i)
-        self.add(item)
-        print("Moved : " + item)
+        if self.root:
+            self.root = add(self.root, item)
+        else:
+            self.root = Node(item)
+        print("Moved: " + item)
 
     # Rename the item at given index
     def rename(self, i, name):
@@ -307,6 +332,7 @@ def save_query():
             return False
 
 if __name__ == "__main__":
+    init()
     filename = get_arg()
     heap = ToDoHeap(filename)
     heap.peek()
