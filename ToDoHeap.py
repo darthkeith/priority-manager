@@ -1,24 +1,48 @@
+#!/usr/bin/env python3
+
 """
 This is a command line program that stores items in a left-leaning binary heap
-(not necessarily complete) with priority chosen by the user such that the user
-is required to make as few comparisons as possible.
+with priority chosen by the user such that the user is required to make as few
+comparisons as possible.
 
 To open a saved heap:
-python ToDoHeap.py [filename]
+./ToDoHeap.py filename
 """
 
-from os.path import isfile
-from sys import argv
+from sys import argv, path
+from os.path import isfile, join
+from configparser import ConfigParser
 from math import log10
-from pathvalidate import is_valid_filename
-from colorama import init # Makes ANSI escape codes work on Windows
 
-# Escape codes for changing color
-BACK0 = "\x1b[40m"  # Background color for even lines
-BACK1 = "\x1b[100m" # Background color for odd lines
-INDEX = "\x1b[32m"  # Color of indices
-TREE = "\x1b[31m"   # Color of tree
-TEXT = "\x1b[37m"   # Color of text in tree
+# Config file for colors
+COLOR_FILE = "colors.ini"
+
+# Get colors from config file
+def load_colors():
+    global BACKGROUND0_COLOR    # Background color for even lines
+    global BACKGROUND1_COLOR    # Background color for odd lines
+    global INDEX_COLOR          # Color of indices
+    global TREE_COLOR           # Color of tree
+    global TEXT_COLOR           # Color of text
+    try:
+        config = ConfigParser()
+        color_path = join(path[0], COLOR_FILE)
+        config.read(color_path)
+        colors = config["colors"]
+        BACKGROUND0_COLOR = colors["background0"]
+        BACKGROUND1_COLOR = colors["background1"]
+        INDEX_COLOR = colors["index"]
+        TREE_COLOR = colors["tree"]
+        TEXT_COLOR = colors["text"]
+    except:
+        # Default colors
+        BACKGROUND0_COLOR = "\x1b[40m"
+        BACKGROUND1_COLOR = "\x1b[100m"
+        INDEX_COLOR = "\x1b[32m"
+        TREE_COLOR = "\x1b[31m"
+        TEXT_COLOR = "\x1b[37m"
+
+# Escape sequences for changing colors
 RESET = "\x1b[0m"   # Reset colors
 END = "\x1b[K"      # Extend background color to end of line
 
@@ -29,22 +53,23 @@ BOX_VERT = "\u2551" # |
 BOX_DASH = "\u2550" # -
 BOX_T = "\u2566"    # T
 
+# Messages
 HELP = """
-    peek/<Enter> - Show item of highest priority
+    peek/<Enter>                Show item of highest priority
 
-    list/ls - Display all items with their indices
+    list/ls                     Display all items with their indices
 
-    add [name] - Add item
+    add [name]                  Add item
 
-    delete/del [index] - Delete item at index (0 by default)
+    delete/del [index]          Delete item at index (0 by default)
 
-    move/mv [index] - Move item at index to new position 
+    move/mv [index]             Move item at index to new position 
 
-    rename/rn [index] [name] - Rename item at index
+    rename/rn [index] [name]    Rename item at index
 
-    quit/q - Save and quit
+    quit/q                      Save and quit
 
-    help - List available commands"""
+    help                        Show this list"""
 EMPTY_HEAP = "Heap is empty."
 UNRECOGNIZED = """Command not recognized.
 Type "help" for list of available commands."""
@@ -54,19 +79,19 @@ class Node:
     """"Node in a binary heap"""
 
     def __init__(self, item):
-        self.item = item  # name of item
-        self.left = None  # left child
-        self.right = None # right child
-        self.height = 0   # minimum distance to descendant without two children
-        self.size = 1     # number of nodes in subtree
+        self.item = item    # name of item
+        self.left = None    # left child
+        self.right = None   # right child
+        self.height = 0     # minimum distance to descendant without two children
+        self.size = 1       # number of nodes in subtree
 
 # Get text representation of heap
-def to_text(node):
+def to_string(node):
     if node == None:
         return "\n"
-    return node.item + "\n" + to_text(node.left) + to_text(node.right)
+    return node.item + "\n" + to_string(node.left) + to_string(node.right)
 
-# Build heap from open text file
+# Build heap from open text file and return root node
 def build_heap(f):
     item = f.readline().strip()
     if not item:
@@ -86,10 +111,10 @@ def build_heap(f):
 # Helper function to display heap
 def display(node, is_last_child, line, digits, prefix):
     if (line & 1) == 0:
-        print(BACK0, end="")
+        print(BACKGROUND0_COLOR, end="")
     else:
-        print(BACK1, end="")
-    print(INDEX + "{:<{}}".format(line, digits) + TREE + prefix, end="")
+        print(BACKGROUND1_COLOR, end="")
+    print(INDEX_COLOR + "{:<{}}".format(line, digits) + TREE_COLOR + prefix, end="")
     line += 1
     c = " "
     if is_last_child:
@@ -98,9 +123,9 @@ def display(node, is_last_child, line, digits, prefix):
         print(BOX_t, end="")
         c = BOX_VERT
     if node.left == None:
-        print(BOX_DASH + TEXT + node.item + END)
+        print(BOX_DASH + TEXT_COLOR + node.item + END)
     else:
-        print(BOX_T + TEXT + node.item + END)
+        print(BOX_T + TEXT_COLOR + node.item + END)
         prefix += c
         is_last_child = node.right == None
         line = display(node.left, is_last_child, line, digits, prefix)
@@ -212,7 +237,7 @@ class ToDoHeap:
     # Store the current heap as a file so it can be reconstructed
     def save(self, filename):
         with open(filename, "w") as f:
-            f.write(to_text(self.root))
+            f.write(to_string(self.root))
 
     # Print the item at the top of the heap
     def peek(self):
@@ -267,16 +292,14 @@ class ToDoHeap:
             print("Invalid index.")
         return False
 
-# Get the first command line argument if it is a valid file that exists
+# Get the first command line argument if it is a file that exists
 def get_arg():
     if len(argv) > 1:
         filename = argv[1]
-        if not is_valid_filename(filename):
-            print("Invalid filename.")
-        elif not isfile(filename):
-            print("File {} not found.".format(filename))
-        else:
+        if isfile(filename):
             return filename
+        else:
+            print("File {} not found.".format(filename))
     return ""
 
 # Parse user input for command and following string
@@ -311,16 +334,20 @@ def get_name(name):
             return name
         name = input("Enter name: ")
 
-# Get a non-empty valid filename
-def get_filename():
-    while True:
-        filename = input("Enter filename: ")
-        if is_valid_filename(filename):
-            return filename
-        print("Invalid filename.")
+# Save the heap, prompting user for filename if necessary
+def save_heap(heap, filename):
+    if not filename:
+        while True:
+            filename = input("Enter filename: ")
+            try:
+                heap.save(filename)
+                return
+            except FileNotFoundError:
+                pass
+    heap.save(filename)
 
 # Ask if the user wants to save
-def save_query():
+def save_requested():
     while True:
         ans = input("Save heap (y/n)? ") 
         if not ans:
@@ -332,11 +359,15 @@ def save_query():
             return False
 
 if __name__ == "__main__":
-    init()
+
+    # Initialization
+    load_colors()
     filename = get_arg()
     heap = ToDoHeap(filename)
     heap.peek()
     changed = False
+
+    # Main loop
     while True:
         command, string = get_command()
         if command in ("", "peek"):
@@ -364,10 +395,8 @@ if __name__ == "__main__":
                 heap.rename(i, name)
                 changed = True
         elif command in ("q", "quit"):
-            if changed and save_query():
-                if not filename:
-                    filename = get_filename()
-                heap.save(filename)
+            if changed and save_requested():
+                save_heap(heap, filename)
             break
         elif command == "help":
             print(HELP)

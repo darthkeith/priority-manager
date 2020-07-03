@@ -1,12 +1,12 @@
 # To-do Heap
 
 ## Description
-This is a command line program that stores items in a binary heap (not necessarily complete) with priority chosen by the user such that the user is required to make as few comparisons as possible.
+This is a command line program that stores items in a binary heap with priority chosen by the user such that the user is required to make as few comparisons as possible.
 
 ## How to use
 To open a saved heap, use the filename as a command line argument:
 
-`python ToDoHeap.py filename`
+`./ToDoHeap.py filename`
 
 ### Available Commands
 `peek/<Enter>` - Show item of highest priority
