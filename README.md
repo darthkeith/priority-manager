@@ -1,19 +1,21 @@
 # Comparison Heap
 
 ## Description
-This is a command line program that stores items in a binary heap with priority chosen by the user such that the user is required to make as few comparisons as possible.
+A program with a text-based user interface that stores items in a binary heap with priority chosen by the user such that the user is required to make a minimal number of comparisons.
 
 To open a saved heap:
 
-`./ComparisonHeap.py filename`
+`.../ComparisonHeap.py filename`
 
 ## Commands
-`add NAME` - Add item with NAME
+`a` - Add item
 
-`del INDEX` - Delete item at INDEX
+`d` - Delete item
 
-`mv INDEX` - Move item at INDEX
+`m` - Move item
 
-`rn INDEX NAME` - Rename item at INDEX with NAME
+`r` - Rename item
 
 `q` - Save and quit
+
+`Esc` - Cancel user input
