@@ -11,48 +11,21 @@ BOX_DASH = '\u2550'     # -
 class Node:
     """Node in comparison heap."""
 
-    def __init__(self, name):
-        self.name = name    # name of item
-        self.left = None    # left child
-        self.right = None   # right child
-        self.height = 0     # min distance to descendant without two children
-        self.size = 1       # number of nodes in subtree
-
-def _build_heap(f):
-    # Build heap from open text file and return root node.
-    name = f.readline()[:-1]
-    if not name:
-        return None
-    root = Node(name)
-    root.left = _build_heap(f)
-    root.right = _build_heap(f)
-    if root.left == None:
-        pass
-    elif root.right == None:
-        root.size = 1 + root.left.size
-    else:
-        root.height = 1 + min(root.left.height, root.right.height)
-        root.size = 1 + root.left.size + root.right.size
-    return root
-
-def _to_string(root):
-    # Return string representation of heap for storage.
-    if root == None:
-        return '\n'
-    return root.name + '\n' + _to_string(root.left) + _to_string(root.right)
-
-def _rename(node, idx, target_idx, new_name):
-    # Rename node at target pre-order index.
-    if idx == target_idx:
-        node.name = new_name
-    elif node.right == None:
-        _rename(node.left, idx + 1, target_idx, new_name)
-    else:
-        right_idx = idx + node.left.size + 1
-        if target_idx < right_idx:
-            _rename(node.left, idx + 1, target_idx, new_name)
+    def __init__(self, name, left, right):
+        if right:
+            height = 1 + min(left.height, right.height)
+            size = 1 + left.size + right.size 
         else:
-            _rename(node.right, right_idx, target_idx, new_name)
+            height = 0
+            size = 1 + left.size if left else 1
+        self.name = name        # name of item
+        self.left = left        # left child
+        self.right = right      # right child
+        self.height = height    # min distance to descendant without two children
+        self.size = size        # number of nodes in subtree
+
+    def copy(self, left, right):
+        return Node(self.name, left, right)
 
 
 class ComparisonHeap:
@@ -61,7 +34,7 @@ class ComparisonHeap:
     with a minimal number of comparisons.
 
     Parameters:
-        filename: Name of saved file, or empty string if creating a new heap.
+        filename: Name of saved file.  If empty string, create new heap.
 
         is_higher: Callback function that compares the priority of two strings.
 
@@ -70,92 +43,82 @@ class ComparisonHeap:
     def __init__(self, filename, is_higher):
         self.root = None
         self.is_higher = is_higher
-        if filename:
-            with open(filename, 'r') as f:
-                self.root = _build_heap(f)
+        if not filename:
+            return
+        def build_heap(f):
+            name = f.readline()[:-1]
+            if not name:
+                return None
+            left = build_heap(f)
+            right = build_heap(f)
+            return Node(name, left, right)
+        with open(filename, 'r') as f:
+            self.root = build_heap(f)
 
     def save(self, filename):
         """Save heap to file."""
+        def to_string(root):
+            if root == None:
+                return '\n'
+            return root.name + '\n' + to_string(root.left) + to_string(root.right)
         with open(filename, 'w') as f:
-            f.write(_to_string(self.root))
-
-    def _add(self, root, name):
-        # Add name to non-empty subtree.
-        if self.is_higher(name, root.name):
-            x = Node(name)
-            x.left = root
-            x.size = 1 + root.size
-            return x
-        if root.left == None:
-            root.left = Node(name)
-        elif root.right == None:
-            root.right = Node(name)
-            root.height = 1
-        else:
-            if root.right.height < root.left.height:
-                root.right = self._add(root.right, name)
-            else:
-                root.left = self._add(root.left, name)
-            root.height = 1 + min(root.left.height, root.right.height)
-        root.size += 1 
-        return root
+            f.write(to_string(self.root))
 
     def add(self, name):
         """Add name to heap."""
         if not name:
             name = ' '
+        def leaf(name):
+            return Node(name, None, None)
         if self.is_empty():
-            self.root = Node(name)
-        else:
-            self.root = self._add(self.root, name)
-
-    def _merge(self, x, y):
-        # Merge two non-empty subtrees together.
-        if self.is_higher(y.name, x.name):
-            root, z = y, x
-        else:
-            root, z = x, y
-        if root.left == None:
-            root.left = z
-        elif root.right == None:
-            root.right = z
-            root.height = 1 + min(root.left.height, root.right.height)
-        else:
+            self.root = leaf(name)
+            return
+        def do_add(root):
+            if self.is_higher(name, root.name):
+                return Node(name, root, None)
+            if root.left == None:
+                return root.copy(leaf(name), None)
+            if root.right == None:
+                return root.copy(root.left, leaf(name))
             if root.right.height < root.left.height:
-                root.right = self._merge(root.right, z)
-            else:
-                root.left = self._merge(root.left, z)
-            root.height = 1 + min(root.left.height, root.right.height)
-        root.size += z.size
-        return root
-
-    def _delete(self, root, idx, target_idx):
-        # Delete node at target pre-order index and return its name.
-        if idx == target_idx:
-            if root.right == None:
-                return root.left, root.name
-            return self._merge(root.left, root.right), root.name
-        if root.right == None:
-            root.left, name = self._delete(root.left, idx + 1, target_idx)
-        else:
-            right_idx = idx + root.left.size + 1
-            if target_idx < right_idx:
-                root.left, name = self._delete(root.left, idx + 1, target_idx)
-                if root.left == None:
-                    root.left = root.right
-                    root.right = None
-            else:
-                root.right, name = self._delete(root.right, right_idx, target_idx)
-            if root.right == None:
-                root.height = 0
-            else:
-                root.height = 1 + min(root.left.height, root.right.height)
-        root.size -= 1
-        return root, name
+                right = do_add(root.right)
+                return root.copy(root.left, right)
+            left = do_add(root.left)
+            return root.copy(left, root.right)
+        self.root = do_add(self.root)
 
     def delete(self, idx):
         """Delete node at pre-order index and return its name."""
-        self.root, name = self._delete(self.root, 0, idx)
+        def merge(x, y):
+            # Merge two non-empty subtrees.
+            root, child = (x, y) if self.is_higher(x.name, y.name) else (y, x)
+            if root.left == None:
+                return root.copy(child, None)
+            if root.right == None:
+                return root.copy(root.left, child)
+            if root.right.height < root.left.height:
+                right = merge(root.right, child)
+                return root.copy(root.left, right)
+            left = merge(root.left, child)
+            return root.copy(left, root.right)
+        name = ''
+        def do_delete(root, current_idx):
+            if current_idx == idx:
+                nonlocal name
+                name = root.name
+                if root.right == None:
+                    return root.left
+                return merge(root.left, root.right)
+            left_idx = 1 + current_idx
+            right_idx = left_idx + root.left.size
+            if idx < right_idx:
+                left = do_delete(root.left, left_idx)
+                if left == None:
+                    return root.copy(root.right, None)
+                return root.copy(left, root.right)
+            right = do_delete(root.right, right_idx)
+            return root.copy(root.left, right)
+        self.root = do_delete(self.root, 0)
         return name
 
     def move(self, idx):
@@ -168,38 +131,17 @@ class ComparisonHeap:
         """Rename node at pre-order index."""
         if not name:
             name = ' '
-        _rename(self.root, 0, idx, name)
-
-    def _max_idx_digits(self):
-        # Number of digits in longest index.
-        if self.is_empty():
-            return 0
-        if self.root.size == 1:
-            return 1
-        return 1 + int(log10(self.root.size - 1))
-
-    def _display_tree(self, root, row_list, prefix, is_last_child, ndigits):
-        # Helper function for display_tree method that builds row_list.
-        idx_str = "{:>{}}".format(len(row_list), ndigits)
-        tree_str = prefix
-        if is_last_child:
-            tree_str += BOX_L
-            prefix += ' '
-        else:
-            tree_str += BOX_TSIDE
-            prefix += BOX_VERT
-        is_leaf = root.left == None
-        if is_leaf:
-            tree_str += BOX_DASH
-        else:
-            tree_str += BOX_T
-        row_list.append((idx_str, tree_str, root.name))
-        if is_leaf:
-            return
-        one_child = root.right == None
-        self._display_tree(root.left, row_list, prefix, one_child, ndigits)
-        if not one_child:
-            self._display_tree(root.right, row_list, prefix, True, ndigits)
+        def do_rename(node, current_idx):
+            if current_idx == idx:
+                node.name = name
+                return
+            left_idx = 1 + current_idx
+            right_idx = left_idx + node.left.size
+            if idx < right_idx:
+                do_rename(node.left, left_idx)
+                return
+            do_rename(node.right, right_idx)
+        do_rename(self.root, 0)
 
     def display_tree(self):
         """
@@ -207,10 +149,31 @@ class ComparisonHeap:
 
         Format of each 3-tuple: (index string, tree string, item name)
         """
-        row_list = []
         if self.is_empty():
-            return row_list
-        self._display_tree(self.root, row_list, '', True, self._max_idx_digits())
+            return []
+        if self.root.size == 1:
+            ndigits = 1
+        else:
+            ndigits = 1 + int(log10(self.root.size - 1))
+        row_list = []
+        def build_rows(root, prefix, is_last_child):
+            idx_str = "{:>{}}".format(len(row_list), ndigits)
+            tree_str = prefix
+            if is_last_child:
+                tree_str += BOX_L
+                prefix += ' '
+            else:
+                tree_str += BOX_TSIDE
+                prefix += BOX_VERT
+            is_leaf = root.left == None
+            tree_str += BOX_DASH if is_leaf else BOX_T
+            row_list.append((idx_str, tree_str, root.name))
+            if is_leaf:
+                return
+            build_rows(root.left, prefix, root.right == None)
+            if root.right:
+                build_rows(root.right, prefix, True)
+        build_rows(self.root, '', True)
         return row_list
 
     def is_empty(self):
