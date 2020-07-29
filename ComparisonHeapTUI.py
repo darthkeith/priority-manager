@@ -31,8 +31,8 @@ COMMANDS = ("add", "delete", "move", "rename", "quit")
 SPACING = "    "
 LENGTH_COMMAND_GUIDE = (sum(len(c) for c in COMMANDS) +
                         len(SPACING)*len(COMMANDS) + 1)
-LABEL1 = "(1) "
-LABEL2 = "(2) "
+LABEL_A = "(1) "
+LABEL_B = "(2) "
 KEYS_ENTER = (curses.KEY_ENTER, 10, 13)
 KEY_ESC = 27
 
@@ -53,13 +53,22 @@ def main(window):
         window.move(row, 0)
         window.clrtoeol()
 
-    def print_row(row, msg):
+    def print_command_guide():
+        clear_row(ROW_PROMPT)
+        line = curses.newwin(1, LENGTH_COMMAND_GUIDE, 0, 0)
+        for cmd in COMMANDS:
+            line.addstr(SPACING)
+            line.addstr(cmd[0], curses.A_UNDERLINE)
+            line.addstr(cmd[1:])
+        line.overwrite(window)
+    
+    def print_row(row, msg, attr=curses.A_NORMAL):
         if row >= nrows():
             return
         window.move(row, 0)
         window.clrtoeol()
         line = curses.newwin(1, len(msg) + 1, row, 0)
-        line.addstr(msg)
+        line.addstr(msg, attr)
         line.overwrite(window)
     
     def print_row_cursor(row, msg):
@@ -70,119 +79,151 @@ def main(window):
         else:
             curses.curs_set(False)
 
-    def print_command_guide():
-        clear_row(ROW_PROMPT)
-        line = curses.newwin(1, LENGTH_COMMAND_GUIDE, 0, 0)
-        for cmd in COMMANDS:
-            line.addstr(SPACING)
-            line.addstr(cmd[0], curses.A_UNDERLINE)
-            line.addstr(cmd[1:])
-        line.overwrite(window)
-    
+    def display_func():
+        # Return callback function that displays the heap as a tree.
+        lines = heap.display_tree()
+        def display(highlight=-1):
+            if ROW_TREE >= nrows():
+                return
+            window.move(ROW_TREE, 0)
+            window.clrtobot()
+            for i, triple in enumerate(lines):
+                row = ROW_TREE + i
+                line = ''.join(triple)
+                if i == highlight:
+                    print_row(row, line, curses.A_REVERSE)
+                else:
+                    print_row(row, line)
+        return display
+
+    def is_higher_func(display):
+        # Return function that tests if item A is of higher priority than item B.
+        def clear():
+            clear_row(ROW_PROMPT)
+            clear_row(ROW_MSG - 1)
+            clear_row(ROW_MSG)
+        def is_higher(item_A, item_B):
+            while True:
+                print_row(ROW_PROMPT, PROMPT_SELECT)
+                print_row(ROW_MSG - 1, LABEL_A + item_A)
+                print_row(ROW_MSG, LABEL_B + item_B)
+                key = window.getch()
+                if key == ord('1'):
+                    clear()
+                    return True
+                if key == ord('2'):
+                    clear()
+                    return False
+                if key == curses.KEY_RESIZE:
+                    display()
+        return is_higher
+
     def is_ASCII_key(key):
         return key >= 32 and key <= 126
 
-    def input_str(prompt):
+    def input_str(prompt, display):
         # Get string of basic ASCII characters from user.
-        input_str = ''
+        current_str = ''
         while True:
-            print_row_cursor(ROW_PROMPT, prompt + input_str)
+            print_row_cursor(ROW_PROMPT, prompt + current_str)
             key = window.getch()
             if is_ASCII_key(key):
-                input_str += chr(key)
+                current_str += chr(key)
             elif key == curses.KEY_BACKSPACE:
-                input_str = input_str[:-1]
+                current_str = current_str[:-1]
             elif key in KEYS_ENTER:
                 break
             elif key == KEY_ESC:
-                input_str = ''
+                current_str = ''
                 break
             elif key == curses.KEY_RESIZE:
-                display_tree()
-        input_str = input_str.strip()
-        if not input_str:
+                display()
+        current_str = current_str.strip()
+        if not current_str:
             print_row(ROW_MSG, MSG_CANCELED)
         curses.curs_set(False)
-        return input_str
+        return current_str
 
-    def input_idx(prompt):
+    def input_idx(prompt, display):
         # Get valid index from user.
-        input_str = '0'
+        current_str = '0'
         while True:
-            print_row_cursor(ROW_PROMPT, prompt + input_str)
+            idx = int(current_str) if current_str else -1
+            display(idx)
+            print_row_cursor(ROW_PROMPT, prompt + current_str)
             key = window.getch()
             char = chr(key)
             if char.isdigit():
-                idx = int(input_str + char) 
+                idx = int(current_str + char) 
                 if heap.is_valid_idx(idx):
-                    input_str = str(idx)
+                    current_str = str(idx)
             elif key == curses.KEY_BACKSPACE:
-                input_str = input_str[:-1]
+                current_str = current_str[:-1]
             elif key in KEYS_ENTER:
-                if not input_str:
-                    input_str = '-1'
+                if not current_str:
+                    current_str = '-1'
                 break
             elif key == KEY_ESC:
-                input_str = '-1'
+                current_str = '-1'
                 break
-            elif key == curses.KEY_RESIZE:
-                display_tree()
-        idx = int(input_str)
+        idx = int(current_str)
         if idx == -1:
             print_row(ROW_MSG, MSG_CANCELED)
         curses.curs_set(False)
         return idx
  
-    def add():
-        name = input_str(PROMPT_ADD)
+    def add(display):
+        name = input_str(PROMPT_ADD, display)
         if not name:
             return False
-        heap.add(name)
+        heap.add(name, is_higher_func(display))
         print_row(ROW_MSG, MSG_ADDED + name)
         return True
 
-    def delete():
+    def delete(display):
         if heap.is_empty():
             print_row(ROW_MSG, MSG_EMPTY_HEAP)
             return False
-        idx = input_idx(PROMPT_DELETE)
+        idx = input_idx(PROMPT_DELETE, display)
         if idx == -1:
             return False
-        name = heap.delete(idx)
+        is_higher = is_higher_func(lambda: display(idx))
+        name = heap.delete(idx, is_higher)
         print_row(ROW_MSG, MSG_DELETED + name)
         return True
 
-    def move():
+    def move(display):
         if heap.is_empty():
             print_row(ROW_MSG, MSG_EMPTY_HEAP)
             return False
-        idx = input_idx(PROMPT_MOVE)
+        idx = input_idx(PROMPT_MOVE, display)
         if idx == -1:
             return False
-        name = heap.move(idx)
+        is_higher = is_higher_func(lambda: display(idx))
+        name = heap.move(idx, is_higher)
         print_row(ROW_MSG, MSG_MOVED + name)
         return True
 
-    def rename():
+    def rename(display):
         if heap.is_empty():
             print_row(ROW_MSG, MSG_EMPTY_HEAP)
             return False
-        idx = input_idx(PROMPT_RENAME_INDEX)
+        idx = input_idx(PROMPT_RENAME_INDEX, display)
         if idx == -1:
             return False
-        name = input_str(PROMPT_RENAME_NAME)
+        name = input_str(PROMPT_RENAME_NAME, lambda: display(idx))
         if not name:
             return False
         heap.rename(idx, name)
         print_row(ROW_MSG, MSG_RENAMED + name)
         return True
 
-    def save(filename):
+    def save(filename, display):
         if filename:
             heap.save(filename)
             return True
         while True:
-            filename = input_str(PROMPT_FILENAME)
+            filename = input_str(PROMPT_FILENAME, display)
             if not filename:
                 return False
             if isfile(filename):
@@ -194,12 +235,12 @@ def main(window):
             except FileNotFoundError:
                 print_row(ROW_MSG, MSG_INVALID_PATH) 
 
-    def save_query(filename):
+    def save_query(filename, display):
         while True:
             print_row(ROW_PROMPT, PROMPT_SAVE)
             key = window.getch()
             if key == ord('y'):
-                if not save(filename):
+                if not save(filename, display):
                     return False
                 clear_row(ROW_PROMPT)
                 print_row(ROW_MSG, MSG_SAVED)
@@ -213,26 +254,8 @@ def main(window):
             elif key == KEY_ESC:
                 print_row(ROW_MSG, MSG_CANCELED)
                 return False
-            else:
-                display_tree()
-
-    def is_higher(item_1, item_2):
-        # Is Item A of higher priority than item B?
-        print_row(ROW_PROMPT, PROMPT_SELECT)
-        print_row(ROW_MSG - 1, LABEL1 + item_1)
-        print_row(ROW_MSG, LABEL2 + item_2)
-        while True:
-            char = window.getkey()
-            if char == '1':
-                answer = True
-                break
-            if char == '2':
-                answer = False
-                break
-        clear_row(ROW_PROMPT)
-        clear_row(ROW_MSG - 1)
-        clear_row(ROW_MSG)
-        return answer
+            elif key == curses.KEY_RESIZE:
+                display()
 
     def parse_filename():
         # Return first command line argument if it's an existing file.
@@ -244,43 +267,33 @@ def main(window):
                 print_row(ROW_MSG, MSG_FILE_NOT_FOUND.format(filename))
         return ''
 
-    def display_tree():
-        # Display the heap as a tree.
-        if ROW_TREE >= nrows():
-            return
-        window.move(ROW_TREE, 0)
-        window.clrtobot()
-        row = ROW_TREE
-        for line in heap.display_tree():
-            print_row(row, ''.join(line))
-            row += 1
-
     curses.curs_set(False)
     filename = parse_filename()
-    heap = ComparisonHeap(filename, is_higher)
+    heap = ComparisonHeap(filename)
     changed = False
     while True:
         print_command_guide()
-        display_tree()
+        display = display_func()
+        display()
         cmd = window.getkey()
         clear_row(ROW_MSG)
         if cmd == 'a':
-            if add():
+            if add(display):
                 changed = True
         elif cmd == 'd':
-            if delete():
+            if delete(display):
                 changed = True
         elif cmd == 'm':
-            if move():
+            if move(display):
                 changed = True
         elif cmd == 'r':
-            if rename():
+            if rename(display):
                 changed = True
         elif cmd == 'q':
             if not changed:
-                break
-            if save_query(filename):
-                break
+                return
+            if save_query(filename, display):
+                return
 
 if __name__ == "__main__":
     environ.setdefault('ESCDELAY','25')     # prevent delay after pressing Esc

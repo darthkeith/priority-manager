@@ -33,16 +33,12 @@ class ComparisonHeap:
     A Left-leaning binary heap of strings for which operations are performed
     with a minimal number of comparisons.
 
-    Parameters:
-        filename: Name of saved file.  If empty string, create new heap.
-
-        is_higher: Callback function that compares the priority of two strings.
+    filename: If empty string, create new heap, otherwise open saved heap.
 
     """
 
-    def __init__(self, filename, is_higher):
+    def __init__(self, filename):
         self.root = None
-        self.is_higher = is_higher
         if not filename:
             return
         def build_heap(f):
@@ -64,7 +60,7 @@ class ComparisonHeap:
         with open(filename, 'w') as f:
             f.write(to_string(self.root))
 
-    def add(self, name):
+    def add(self, name, is_higher):
         """Add name to heap."""
         if not name:
             name = ' '
@@ -74,7 +70,7 @@ class ComparisonHeap:
             self.root = leaf(name)
             return
         def do_add(root):
-            if self.is_higher(name, root.name):
+            if is_higher(name, root.name):
                 return Node(name, root, None)
             if root.left == None:
                 return root.copy(leaf(name), None)
@@ -87,11 +83,11 @@ class ComparisonHeap:
             return root.copy(left, root.right)
         self.root = do_add(self.root)
 
-    def delete(self, idx):
+    def delete(self, idx, is_higher):
         """Delete node at pre-order index and return its name."""
         def merge(x, y):
             # Merge two non-empty subtrees.
-            root, child = (x, y) if self.is_higher(x.name, y.name) else (y, x)
+            root, child = (x, y) if is_higher(x.name, y.name) else (y, x)
             if root.left == None:
                 return root.copy(child, None)
             if root.right == None:
@@ -121,10 +117,10 @@ class ComparisonHeap:
         self.root = do_delete(self.root, 0)
         return name
 
-    def move(self, idx):
+    def move(self, idx, is_higher):
         """Delete node at pre-orde index, reinsert it, and return its name."""
-        name = self.delete(idx)
-        self.add(name)
+        name = self.delete(idx, is_higher)
+        self.add(name, is_higher)
         return name
 
     def rename(self, idx, name):
