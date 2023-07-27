@@ -1,14 +1,14 @@
 # Comparison Heap
 
 ## Description
-A program with a text-based user interface that stores items in a binary heap with priority chosen by the user such that the user is required to make a minimal number of comparisons.
+A "priority list" that stores items in a heap rather than a list to reduce the
+number of comparisons needed to determine the highest priority item.
 
-To open a saved heap:
-
-`.../ComparisonHeapTUI.py filename`
+To open a saved file, provide the filename as the first command line argument,
+otherwise the program starts with an empty heap.
 
 ## Commands
-`a` - Add item
+`i` - Insert item
 
 `d` - Delete item
 
@@ -18,4 +18,4 @@ To open a saved heap:
 
 `q` - Save and quit
 
-`Esc` - Cancel user input
+`Esc` - Cancel command
