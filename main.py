@@ -7,12 +7,12 @@ otherwise the program starts with an empty heap.
 
 from sys import argv
 from os.path import isfile
-from curses import wrapper
+import curses
 
 import heapio as heap
 
 
-def parse_filename():
+def parse_filename() -> str:
     # Return first command line argument if it's an existing file.
     if len(argv) > 1:
         filename = argv[1]
@@ -22,7 +22,7 @@ def parse_filename():
     return ''
 
 
-def main(window):
+def main(window: curses.window):
     filename = parse_filename()
     heap.init(window, filename)
     dispatch = {'i': heap.insert,
@@ -46,5 +46,5 @@ def main(window):
             message = ''
 
 
-wrapper(main)
+curses.wrapper(main)
 

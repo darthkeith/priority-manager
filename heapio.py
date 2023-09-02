@@ -1,20 +1,20 @@
-"""Module for functions used by the main comparison heap script.
+"""Module for functions used by the main script.
 
 Functions
 ---------
-init
+init(curses_window: 'curses.window', filename: str)
     Initialize the module.
-insert
+insert() -> tuple[bool, str]
     Insert an item into the heap.
-delete
+delete() -> tuple[bool, str]
     Delete an item from the heap.
-move
+move() -> tuple[bool, str]
     Delete then reinsert an item into the heap.
-rename
+rename() -> tuple[bool, str]
     Rename an item in the heap.
-query_save
+query_save(filename: str) -> tuple[bool, str]
     Query if the user wants to save, and save to file if so.
-get_cmd
+get_cmd(msg: str) -> str
     Return a character from user input.
 """
 
@@ -25,13 +25,13 @@ import window
 import data as d
 
 
-def init(curses_window, filename):
+def init(curses_window: 'curses.window', filename: str):
     """Initialize the module.
     
-    If `filename` is an empty string, construct an empty heap.
+    If `filename` is empty, construct an empty heap.
     """
     window.init(curses_window, heap.display)
-    def is_higher(item1, item2):
+    def is_higher(item1: str, item2: str) -> bool:
         # Return True if item 1 is of higer priority than item 2.
         line1 = d.LABEL1 + item1
         line2 = d.LABEL2 + item2
@@ -49,9 +49,9 @@ def init(curses_window, filename):
         heap.init(is_higher)
 
 
-def _input_str(prompt):
+def _input_str(prompt: str) -> str:
     # Get string from user input.
-    def is_ASCII_char(n):
+    def is_ASCII_char(n: int) -> bool:
         return n >= 32 and n <= 126
     curr_str = ''
     while True:
@@ -68,7 +68,7 @@ def _input_str(prompt):
     return curr_str.strip()
 
 
-def _input_idx(prompt):
+def _input_idx(prompt: str) -> int:
     # Get valid index from user input.
     curr_str = '0'
     while True:
@@ -91,10 +91,10 @@ def _input_idx(prompt):
     return int(curr_str)
 
 
-def insert():
+def insert() -> tuple[bool, str]:
     """Insert an item into the heap.
 
-    Return `True` if successful.
+    Return tuple of completion indicator and result message.
     """
     name = _input_str(d.PROMPT_INSERT)
     if not name:
@@ -103,10 +103,10 @@ def insert():
     return True, d.MSG_INSERTED + name
 
 
-def delete():
+def delete() -> tuple[bool, str]:
     """Delete an item from the heap.
 
-    Return `True` if successful.
+    Return tuple of completion indicator and result message.
     """
     if heap.is_empty():
         return False, d.MSG_EMPTY_HEAP
@@ -117,10 +117,10 @@ def delete():
     return True, d.MSG_DELETED + name
 
 
-def move():
+def move() -> tuple[bool, str]:
     """Delete then reinsert an item into the heap.
 
-    Return `True` if successful.
+    Return tuple of completion indicator and result message.
     """
     if heap.is_empty():
         return False, d.MSG_EMPTY_HEAP
@@ -131,10 +131,10 @@ def move():
     return True, d.MSG_MOVED + name
 
 
-def rename():
+def rename() -> tuple[bool, str]:
     """Rename an item in the heap.
 
-    Return `True` if successful.
+    Return tuple of completion indicator and result message.
     """
     if heap.is_empty():
         return False, d.MSG_EMPTY_HEAP
@@ -148,10 +148,10 @@ def rename():
     return True, d.MSG_RENAMED + name
 
 
-def _save(filename):
+def _save(filename: str) -> tuple[bool, str]:
     # Attempt to save the heap as a text file.
-    # Return `True` if successful, and also a result message.
-    def write(fname):
+    # Return tuple of completion indicator and result message.
+    def write(fname: str):
         with open(fname, 'w') as f:
             for line in heap.to_preorder():
                 f.write(line + '\n')
@@ -170,10 +170,10 @@ def _save(filename):
         return False, d.MSG_INVALID_PATH + filename
 
 
-def query_save(filename):
+def query_save(filename: str) -> tuple[bool, str]:
     """Query if the user wants to save, and save to file if so.
 
-    Return `True` if query is completed successfully.
+    Return tuple of completion indicator and result message.
     """
     while True:
         key = window.get_key(d.PROMPT_SAVE)
@@ -190,10 +190,10 @@ def query_save(filename):
             return False, d.MSG_CANCELED
 
 
-def get_cmd(msg):
+def get_cmd(msg: str) -> str:
     """Return a character from user input.
 
-    Display the given message while waiting for user input.
+    Display the given message until the next keypress.
     """
     key = window.get_key_cmd(msg)
     return chr(key)

@@ -2,23 +2,23 @@
 
 Functions
 ---------
-init
+init(is_higher: CompareStr, preorder: MaybeStrIter = None)
     Initialize the heap.
-to_preorder
+to_preorder() -> Iterator[str]
     Generate the pre-order sequence of strings in the heap.
-insert
+insert(key: str)
     Insert key into heap.
-delete
+delete(idx: int) -> str
     Delete node with given pre-order index and return its key.
-move
-    Delete and then reinsert key of node with given pre-order index.
-rename
+move(idx: int) -> str
+    Delete then reinsert key of node with given pre-order index.
+rename(idx: int, name: str)
     Rename item with given pre-order index.
-is_empty
+is_empty() -> bool
     Check if heap is empty.
-is_valid_index
+is_valid_idx(idx: int) -> bool
     Check if number is a valid pre-order index.
-display
+display() -> List[str]
     Return list of rows of the visual display of the heap.
 
 Notes
@@ -27,6 +27,11 @@ Implements a height-biased leftist heap.
 """
 
 from math import log10
+from typing import Callable, Optional, Iterator, List
+
+# Type Aliases
+CompareStr =  Callable[[str, str], bool]
+MaybeIterStr =  Optional[Iterator[str]]
 
 
 class _Node:
@@ -52,7 +57,7 @@ class _Node:
     Null nodes are represented by a value of `None`.
     """
 
-    def __init__(self, key, left, right):
+    def __init__(self, key: str, left: "_Node", right: "_Node") -> "_Node":
         # Construct node with given key and children.
         if right and left:
             if left.rank < right.rank:
@@ -67,31 +72,31 @@ class _Node:
         self.key = key
         self.left = left
         self.right = right
-        self.rank = rank
-        self.size = size
+        self.rank : int = rank
+        self.size : int = size
 
-    def copy(self, left, right):
+    def copy(self, left: "_Node", right: "_Node") -> "_Node":
         # Construct new node with same key and given children.
         return _Node(self.key, left, right)
 
 
-def init(is_higher, preorder=None):
+def init(is_higher: CompareStr, preorder: MaybeIterStr = None):
     """Initialize the heap.
 
     Must be called before the other functions in the module are used.
 
     Parameters
     ----------
-    is_higher : function
-        Callback function used to order strings: is_higher(x, y) returns
-        True when `x` has a higher priority than `y`.
-    preorder : iterator of str, default=None
+    is_higher : CompareStr
+        Callback function used to order strings that returns `True` when the
+        first string has a higher priority than the second.
+    preorder : MaybeIterStr, default=None
         A pre-order sequence of strings, where an empty string represents
         a null node (the default is None, which indicates an empty heap).
     """
     global _is_higher
     _is_higher = is_higher
-    def make_heap():
+    def make_heap() -> Optional[_Node]:
         key = next(preorder)
         if key == '':
             return None
@@ -102,18 +107,17 @@ def init(is_higher, preorder=None):
     _root = make_heap() if preorder else None
 
 
-def to_preorder():
-    """Generate the pre-order sequence of strings in the heap.
+def to_preorder() -> Iterator[str]:
+    """Return iterator of pre-order sequence of strings in the heap.
 
     Returns
     -------
-    generator of str
+    Iterator[str]
         The pre-order sequence of strings in the heap, where each null
-        node is represented by an empty string.  To prevent conflict, if
-        a node has an empty string as its key, a single space character
-        is used instead.
+        node is represented by an empty string (if a node has an empty string
+        as its key, a single space character is used instead).
     """
-    def key_gen(node):
+    def key_gen(node: Optional[_Node]) -> Iterator[str]:
         if node == None:
             yield ''
             return
@@ -125,9 +129,9 @@ def to_preorder():
     return key_gen(_root)
 
 
-def insert(key):
+def insert(key: str):
     """Insert key into heap."""
-    def do_insert(node):
+    def do_insert(node: Optional[_Node]) -> _Node:
         # Insert key into subtree and return new root.
         if node == None:
             return _Node(key, None, None)
@@ -139,9 +143,9 @@ def insert(key):
     _root = do_insert(_root)
 
 
-def delete(idx):
+def delete(idx: int) -> str:
     """Delete node with given pre-order index and return its key."""
-    def merge(x, y):
+    def merge(x: _Node, y: _Node) -> _Node:
         # Merge two non-empty subtrees.
         parent, child = (y, x) if _is_higher(y.key, x.key) else (x, y)
         if parent.right == None:
@@ -149,7 +153,7 @@ def delete(idx):
         right = merge(parent.right, child)
         return parent.copy(parent.left, right)
     key = None
-    def do_delete(node, curr_idx):
+    def do_delete(node: _Node, curr_idx: int) -> Optional[_Node]:
         # Perform deletion from current node/index, return new root.
         if curr_idx == idx:
             nonlocal key
@@ -169,8 +173,8 @@ def delete(idx):
     return key
 
 
-def move(idx):
-    """Delete and then reinsert key of node with given pre-order index.
+def move(idx: int) -> str:
+    """Delete then reinsert key of node with given pre-order index.
 
     Returns
     -------
@@ -182,9 +186,9 @@ def move(idx):
     return key
 
 
-def rename(idx, name):
+def rename(idx: int, name: str):
     """Rename item with given pre-order index."""
-    def do_rename(node, curr_idx):
+    def do_rename(node: _Node, curr_idx: int):
         # Perform rename from current node/index.
         if curr_idx == idx: 
             node.key = name
@@ -198,24 +202,24 @@ def rename(idx, name):
     do_rename(_root, 0)
 
 
-def is_empty():
+def is_empty() -> bool:
     """Check if heap is empty."""
     return _root == None
 
 
-def is_valid_idx(idx):
+def is_valid_idx(idx: int) -> bool:
     """Check if number is a valid pre-order index."""
     if is_empty():
         return False
     return idx >= 0 and idx < _root.size
 
 
-def display():
+def display() -> List[str]:
     """Return list of rows of the visual display of the heap.
 
     Returns
     -------
-    list of str
+    List[str]
         List of rows of the text-based visual display of the heap.
     """
     if is_empty():
@@ -225,8 +229,8 @@ def display():
     else:
         ndigits = 1 + int(log10(_root.size - 1))
     row_list = []
-    def build_rows(node, prefix, is_last_child):
-        """Construct rows to add to `row_list`.
+    def build_rows(node: _Node, prefix: str, is_last_child: bool):
+        """Construct rows to append to `row_list`.
 
         Parameters
         ----------

@@ -2,33 +2,26 @@
 
 Functions
 ---------
-init
+init(window: curses.window, get_lines: Callable[[], List[str]])
     Initialize the window.
-get_key_cmd
+get_key_cmd(msg: str) -> int
     Return key from user input while displaying the command guide.
-get_key_cursor
+get_key_cursor(prompt: str, highlight: int = -1) -> int
     Return key from user input while showing a prompt with a cursor.
-get_key
+get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> int
     Return key from user input.
 """
 
 import curses
+from typing import Callable, List
 
 import data as d
 
 
-def init(window, get_lines):
+def init(window: curses.window, get_lines: Callable[[], List[str]]):
     """Initialize the window.
 
     Must be called before the other functions in the module are used.
-
-    Parameters
-    ----------
-    window
-        Main curses window object.
-    get_lines : function
-        Callback function that returns a list of strings used to display
-        the heap.
     """
     curses.set_escdelay(d.ESC_DELAY)
     global _window
@@ -37,10 +30,11 @@ def init(window, get_lines):
     _get_lines = get_lines
     cmd_guide = _build_cmd_guide()
     global _print_cmd_guide
-    _print_cmd_guide = lambda: cmd_guide.overwrite(window)  # Prints in 1st row
+    def _print_cmd_guide():
+        cmd_guide.overwrite(window)
 
 
-def _build_cmd_guide():
+def _build_cmd_guide() -> curses.window:
     # Construct command guide to be overwritten on main window.
     width = sum(len(c) for c in d.COMMANDS) + len(d.SPACE)*len(d.COMMANDS) + 1
     pad = curses.newpad(1, width)
@@ -51,17 +45,17 @@ def _build_cmd_guide():
     return pad
 
 
-def _n_rows():
+def _n_rows() -> int:
     # Return the number of visible rows in the window.
     return _window.getmaxyx()[0]
 
 
-def _n_cols():
+def _n_cols() -> int:
     # Return the number of visible columns in the window.
     return _window.getmaxyx()[1]
 
 
-def _print_row(row, msg, attr=curses.A_NORMAL):
+def _print_row(row: int, msg: str, attr: int = curses.A_NORMAL):
     # Print a string on a given row with an optional style applied.
     if row >= _n_rows():
         return
@@ -70,12 +64,12 @@ def _print_row(row, msg, attr=curses.A_NORMAL):
     line.overwrite(_window)
 
 
-def _print_prompt(prompt):
+def _print_prompt(prompt: str):
     # Print a prompt message on the prompt line.
     _print_row(d.ROW_A_PROMPT, prompt)
 
 
-def _print_prompt_cursor(prompt):
+def _print_prompt_cursor(prompt: str):
     # Print a prompt message on the prompt line, showing the cursor.
     _print_prompt(prompt)
     if len(prompt) < _n_cols():
@@ -85,18 +79,18 @@ def _print_prompt_cursor(prompt):
         curses.curs_set(0)
 
 
-def _print_msg(msg):
+def _print_msg(msg: str):
     # Print a message on the main message line.
     _print_row(d.ROW_C_MSG, msg)
 
 
-def _print_msgs(pre_msg, msg):
+def _print_msgs(pre_msg: str, msg: str):
     # Print messages on the main message line and the preceding line.
     _print_row(d.ROW_B_MSG, pre_msg)
     _print_msg(msg)
 
 
-def _display_heap(highlight=-1):
+def _display_heap(highlight: int = -1):
     # Display the heap, optionally highlight a row (-1 for no highlight)
     for i, line in enumerate(_get_lines()):
         row = d.ROW_D_HEAP + i
@@ -106,9 +100,12 @@ def _display_heap(highlight=-1):
         _print_row(row, line, attr)
 
 
-def _do_get_key(print_prompt, print_msg, highlight=-1):
-    # Get key from user input while displaying a prompt and messages
-    # with callback functions `print_prompt` and `print_msg`.
+def _do_get_key(
+    print_prompt: Callable[[], None],
+    print_msg: Callable[[], None],
+    highlight: int = -1
+) -> int:
+    # Get key from user input while displaying a prompt and messages.
     # Optionally hightlight a row (-1 for no highlight).
     curses.curs_set(0)
     while True:
@@ -121,16 +118,16 @@ def _do_get_key(print_prompt, print_msg, highlight=-1):
             return k
 
 
-def get_key_cmd(msg):
+def get_key_cmd(msg: str) -> int:
     """Return key from user input while displaying the command guide.
 
-    Also display the given message.
+    Display the given message.
     """
     print_msg = lambda: _print_msg(msg)
     return _do_get_key(_print_cmd_guide, print_msg)
 
 
-def get_key_cursor(prompt, highlight=-1):
+def get_key_cursor(prompt: str, highlight: int = -1) -> int:
     """Return key from user input while showing a prompt with a cursor.
 
     Optionally highlight a row (-1 for no highlight).
@@ -140,7 +137,7 @@ def get_key_cursor(prompt, highlight=-1):
     return _do_get_key(print_prompt, print_msg, highlight)
 
 
-def get_key(prompt='', pre_msg='', msg=''):
+def get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> int:
     """Return key from user input.
 
     Optionally display a prompt and/or messages.
