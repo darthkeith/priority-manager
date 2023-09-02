@@ -17,21 +17,24 @@ from typing import Callable, List
 
 import data as d
 
+# Global Variables
+_cmd_guide: curses.window = None
+_window: curses.window = None
+_get_lines: Callable[[], List[str]] = None
+
 
 def init(window: curses.window, get_lines: Callable[[], List[str]]):
     """Initialize the window.
 
     Must be called before the other functions in the module are used.
     """
-    curses.set_escdelay(d.ESC_DELAY)
+    global _cmd_guide
     global _window
-    _window = window
     global _get_lines
+    _cmd_guide = _build_cmd_guide()
+    _window = window
     _get_lines = get_lines
-    cmd_guide = _build_cmd_guide()
-    global _print_cmd_guide
-    def _print_cmd_guide():
-        cmd_guide.overwrite(window)
+    curses.set_escdelay(d.ESC_DELAY)
 
 
 def _build_cmd_guide() -> curses.window:
@@ -43,6 +46,11 @@ def _build_cmd_guide() -> curses.window:
         pad.addstr(cmd[0], curses.A_UNDERLINE)
         pad.addstr(cmd[1:])
     return pad
+
+
+def _print_cmd_guide():
+    # Print the command guide.
+    _cmd_guide.overwrite(_window)
 
 
 def _n_rows() -> int:

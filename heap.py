@@ -33,6 +33,10 @@ from typing import Callable, Optional, Iterator, List
 CompareStr =  Callable[[str, str], bool]
 MaybeIterStr =  Optional[Iterator[str]]
 
+# Global Variables
+_is_higher: CompareStr = None
+_root: '_Node' = None
+
 
 class _Node:
     """Node in a height-biased leftist heap.
@@ -57,7 +61,7 @@ class _Node:
     Null nodes are represented by a value of `None`.
     """
 
-    def __init__(self, key: str, left: "_Node", right: "_Node") -> "_Node":
+    def __init__(self, key: str, left: '_Node', right: '_Node') -> '_Node':
         # Construct node with given key and children.
         if right and left:
             if left.rank < right.rank:
@@ -75,7 +79,7 @@ class _Node:
         self.rank : int = rank
         self.size : int = size
 
-    def copy(self, left: "_Node", right: "_Node") -> "_Node":
+    def copy(self, left: '_Node', right: '_Node') -> '_Node':
         # Construct new node with same key and given children.
         return _Node(self.key, left, right)
 
@@ -95,6 +99,7 @@ def init(is_higher: CompareStr, preorder: MaybeIterStr = None):
         a null node (the default is None, which indicates an empty heap).
     """
     global _is_higher
+    global _root
     _is_higher = is_higher
     def make_heap() -> Optional[_Node]:
         key = next(preorder)
@@ -103,7 +108,6 @@ def init(is_higher: CompareStr, preorder: MaybeIterStr = None):
         left = make_heap()
         right = make_heap()
         return _Node(key, left, right)
-    global _root
     _root = make_heap() if preorder else None
 
 
