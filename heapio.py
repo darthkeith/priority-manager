@@ -25,10 +25,11 @@ import window
 import data as d
 
 
-def init(curses_window: 'curses.window', filename: str):
+def init(curses_window: 'curses.window', filename: str) -> str:
     """Initialize the module.
     
-    If `filename` is empty, construct an empty heap.
+    Build heap from saved file, or build empty heap if `filename` is
+    empty, and return result message.
     """
     window.init(curses_window, heap.display)
     def is_higher(item1: str, item2: str) -> bool:
@@ -45,8 +46,10 @@ def init(curses_window: 'curses.window', filename: str):
         with open(filename, 'r') as f:
             preorder = (s[:-1] for s in f)
             heap.init(is_higher, preorder)
+        return d.MSG_OPENED + filename
     else:
         heap.init(is_higher)
+        return d.MSG_EMPTY_HEAP
 
 
 def _input_str(prompt: str) -> str:

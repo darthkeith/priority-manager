@@ -24,13 +24,12 @@ def parse_filename() -> str:
 
 def main(window: curses.window):
     filename = parse_filename()
-    heap.init(window, filename)
+    message = heap.init(window, filename)
     dispatch = {'i': heap.insert,
                 'd': heap.delete,
                 'm': heap.move,
                 'r': heap.rename}
     altered = False
-    message = ''
     while True:
         cmd = heap.get_cmd(message)
         if cmd == 'q':

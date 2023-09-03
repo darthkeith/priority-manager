@@ -21,6 +21,7 @@ MSG_FILE_EXISTS = "File already exists: "
 MSG_INVALID_PATH = "Invalid path: "
 MSG_NOT_SAVED = "Not saved."
 MSG_SAVED = "Saved: "
+MSG_OPENED = "Opened: "
 
 LABEL1 = "(1) "
 LABEL2 = "(2) "
