@@ -32,24 +32,26 @@ def init(curses_window: 'curses.window', filename: str) -> str:
     empty, and return result message.
     """
     window.init(curses_window, heap.display)
-    def is_higher(item1: str, item2: str) -> bool:
-        # Return True if item 1 is of higer priority than item 2.
-        line1 = d.LABEL1 + item1
-        line2 = d.LABEL2 + item2
-        while True:
-            key = window.get_key(d.PROMPT_SELECT, line1, line2)
-            if key == ord('1'):
-                return True
-            if key == ord('2'):
-                return False
     if filename:
         with open(filename, 'r') as f:
             preorder = (s[:-1] for s in f)
-            heap.init(is_higher, preorder)
+            heap.init(_is_higher, preorder)
         return d.MSG_OPENED + filename
     else:
-        heap.init(is_higher)
+        heap.init(_is_higher)
         return d.MSG_EMPTY_HEAP
+
+
+def _is_higher(item1: str, item2: str) -> bool:
+    # Return True if item 1 is of higer priority than item 2.
+    line1 = d.LABEL1 + item1
+    line2 = d.LABEL2 + item2
+    while True:
+        key = window.get_key(d.PROMPT_SELECT, line1, line2)
+        if key == ord('1'):
+            return True
+        if key == ord('2'):
+            return False
 
 
 def _input_str(prompt: str) -> str:
