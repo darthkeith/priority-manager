@@ -1,23 +1,29 @@
-# Comparison Heap
+# Priority Manager
 
-## Description
-A "priority list" that stores items in a heap rather than a list to reduce the
-number of comparisons needed to determine the highest priority item.
+Prioritize items by making pairwise comparisons via a text-based interface.
+Items are stored in a heap to reduce the number of comparisons needed to
+determine the highest priority item.
 
-To open a saved file, provide the filename as the first command line argument,
-otherwise the program starts with an empty heap:
+## Usage
 
-`./main.py [filename]`
+```shell
+./main.py [filename]
+```
+
+* `filename` (optional) - A previously saved file used to load a heap.  If no
+  filename is provided, the program will start with an empty heap.
 
 ## Commands
-`i` - Insert item
 
-`d` - Delete item
+* `i` - Insert an item into the heap.
 
-`m` - Move item
+* `d` - Delete an item from the heap.
 
-`r` - Rename item
+* `m` - Move an item by deleting it and reinserting it.
 
-`q` - Save and quit
+* `r` - Rename an item.
 
-`Esc` - Cancel command
+* `q` - Quit after optionally saving the heap.
+
+* `Esc` - Cancel a command.
+
