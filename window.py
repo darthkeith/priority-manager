@@ -2,7 +2,7 @@
 
 Functions
 ---------
-init(window: curses.window, get_lines: Callable[[], List[str]])
+init(window: curses.window, get_lines: StrIterFunc)
     Initialize the window.
 get_key_cmd(msg: str) -> int
     Return key from user input while displaying the command guide.
@@ -13,17 +13,21 @@ get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> int
 """
 
 import curses
-from typing import Callable, List
+from typing import Callable, Iterator
 
 import data as d
+
+# Type Aliases
+VoidFunc = Callable[[], None]
+StrIterFunc = Callable[[], Iterator[str]]
 
 # Global Variables
 _cmd_guide: curses.window = None
 _window: curses.window = None
-_get_lines: Callable[[], List[str]] = None
+_get_lines: StrIterFunc = None
 
 
-def init(window: curses.window, get_lines: Callable[[], List[str]]):
+def init(window: curses.window, get_lines: StrIterFunc):
     """Initialize the window.
 
     Must be called before the other functions in the module are used.
@@ -108,11 +112,9 @@ def _display_heap(highlight: int = -1):
         _print_row(row, line, attr)
 
 
-def _do_get_key(
-    print_prompt: Callable[[], None],
-    print_msg: Callable[[], None],
-    highlight: int = -1
-) -> int:
+def _do_get_key(print_prompt: VoidFunc,
+                print_msg: VoidFunc,
+                highlight: int = -1) -> int:
     # Get key from user input while displaying a prompt and messages.
     # Optionally hightlight a row (-1 for no highlight).
     curses.curs_set(0)
