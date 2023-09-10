@@ -1,6 +1,6 @@
 """Data for comparison heap program."""
 
-from curses import KEY_ENTER, KEY_BACKSPACE
+import curses
 
 PROMPT_INSERT = "Insert: "
 PROMPT_DELETE = "Delete index: "
@@ -28,8 +28,11 @@ LABEL2 = "(2) "
 COMMANDS = ("insert", "delete", "move", "rename", "quit")
 SPACE = "    "
 
-KEY_ESC = 27
-KEYS_ENTER = (KEY_ENTER, 10, 13)    # Possible codes for enter key
+KEY_ESC = chr(27)
+KEY_BACKSPACE = chr(curses.KEY_BACKSPACE)
+KEYS_ENTER = (chr(curses.KEY_ENTER),    # Possible enter key characters
+              chr(10),
+              chr(13))
 
 ROW_A_PROMPT = 0    # Prompt row
 ROW_B_MSG = 1       # Supplementary message row

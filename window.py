@@ -114,7 +114,7 @@ def _display_heap(highlight: int = -1):
 
 def _do_get_key(print_prompt: VoidFunc,
                 print_msg: VoidFunc,
-                highlight: int = -1) -> int:
+                highlight: int = -1) -> str:
     # Get key from user input while displaying a prompt and messages.
     # Optionally hightlight a row (-1 for no highlight).
     curses.curs_set(0)
@@ -125,10 +125,10 @@ def _do_get_key(print_prompt: VoidFunc,
         print_prompt()   # Call last to correctly place cursor
         k = _window.getch()
         if k != curses.KEY_RESIZE:
-            return k
+            return chr(k)
 
 
-def get_key_cmd(msg: str) -> int:
+def get_key_cmd(msg: str) -> str:
     """Return key from user input while displaying the command guide.
 
     Display the given message.
@@ -137,7 +137,7 @@ def get_key_cmd(msg: str) -> int:
     return _do_get_key(_print_cmd_guide, print_msg)
 
 
-def get_key_cursor(prompt: str, highlight: int = -1) -> int:
+def get_key_cursor(prompt: str, highlight: int = -1) -> str:
     """Return key from user input while showing a prompt with a cursor.
 
     Optionally highlight a row (-1 for no highlight).
@@ -147,7 +147,7 @@ def get_key_cursor(prompt: str, highlight: int = -1) -> int:
     return _do_get_key(print_prompt, print_msg, highlight)
 
 
-def get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> int:
+def get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> str:
     """Return key from user input.
 
     Optionally display a prompt and/or messages.

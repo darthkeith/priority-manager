@@ -48,21 +48,21 @@ def _is_higher(item1: str, item2: str) -> bool:
     line2 = d.LABEL2 + item2
     while True:
         key = window.get_key(d.PROMPT_SELECT, line1, line2)
-        if key == ord('1'):
+        if key == '1':
             return True
-        if key == ord('2'):
+        if key == '2':
             return False
 
 
 def _input_str(prompt: str) -> str:
     # Get string from user input.
-    def is_ASCII_char(n: int) -> bool:
-        return n >= 32 and n <= 126
+    def is_printable(c: str) -> bool:
+        return ' ' <= c <= '~'
     curr_str = ''
     while True:
         key = window.get_key_cursor(prompt + curr_str)
-        if is_ASCII_char(key):
-            curr_str += chr(key)
+        if is_printable(key):
+            curr_str += key
         elif key == d.KEY_BACKSPACE:
             curr_str = curr_str[:-1]
         elif key in d.KEYS_ENTER:
@@ -79,9 +79,8 @@ def _input_idx(prompt: str) -> int:
     while True:
         idx = int(curr_str) if curr_str else -1
         key = window.get_key_cursor(prompt + curr_str, idx)
-        char = chr(key)
-        if char.isdigit():
-            idx = int(curr_str + char) 
+        if key.isdigit():
+            idx = int(curr_str + key) 
             if heap.is_valid_idx(idx):
                 curr_str = str(idx)
         elif key == d.KEY_BACKSPACE:
@@ -182,24 +181,18 @@ def query_save(filename: str) -> tuple[bool, str]:
     """
     while True:
         key = window.get_key(d.PROMPT_SAVE)
-        if key == ord('y'):
+        if key == 'y':
             saved, message = _save(filename)
             if not saved:
                 return False, message
             window.get_key(msg=message)
             return True, ''
-        elif key == ord('n'):
+        elif key == 'n':
             window.get_key(msg=d.MSG_NOT_SAVED)
             return True, ''
         elif key == d.KEY_ESC:
             return False, d.MSG_CANCELED
 
 
-def get_cmd(msg: str) -> str:
-    """Return a character from user input.
-
-    Display the given message until the next keypress.
-    """
-    key = window.get_key_cmd(msg)
-    return chr(key)
+get_cmd = window.get_key_cmd
 
