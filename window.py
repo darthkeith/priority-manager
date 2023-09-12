@@ -15,7 +15,7 @@ get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> str
 import curses
 from typing import Callable, Iterator
 
-import data as d
+from data import TEXT, ROW, ESC_DELAY
 
 # Type Aliases
 VoidFunc = Callable[[], None]
@@ -38,15 +38,17 @@ def init(window: curses.window, get_lines: StrIterFunc):
     _cmd_guide = _build_cmd_guide()
     _window = window
     _get_lines = get_lines
-    curses.set_escdelay(d.ESC_DELAY)
+    curses.set_escdelay(ESC_DELAY)
 
 
 def _build_cmd_guide() -> curses.window:
     # Construct command guide to be overwritten on main window.
-    width = sum(len(c) for c in d.COMMANDS) + len(d.SPACE)*len(d.COMMANDS) + 1
+    width = (sum(len(c) for c in TEXT['COMMANDS'])
+            + len(TEXT['SPACING']) * len(TEXT['COMMANDS'])
+            + 1)
     pad = curses.newpad(1, width)
-    for cmd in d.COMMANDS:
-        pad.addstr(d.SPACE)
+    for cmd in TEXT['COMMANDS']:
+        pad.addstr(TEXT['SPACING'])
         pad.addstr(cmd[0], curses.A_UNDERLINE)
         pad.addstr(cmd[1:])
     return pad
@@ -78,7 +80,7 @@ def _print_row(row: int, msg: str, attr: int = curses.A_NORMAL):
 
 def _print_prompt(prompt: str):
     # Print a prompt message on the prompt line.
-    _print_row(d.ROW_A_PROMPT, prompt)
+    _print_row(ROW['PROMPT'], prompt)
 
 
 def _print_prompt_cursor(prompt: str):
@@ -86,26 +88,26 @@ def _print_prompt_cursor(prompt: str):
     _print_prompt(prompt)
     if len(prompt) < _n_cols():
         curses.curs_set(2)
-        _window.move(d.ROW_A_PROMPT, len(prompt))
+        _window.move(ROW['PROMPT'], len(prompt))
     else:
         curses.curs_set(0)
 
 
 def _print_msg(msg: str):
     # Print a message on the main message line.
-    _print_row(d.ROW_C_MSG, msg)
+    _print_row(ROW['MSG'], msg)
 
 
 def _print_msgs(pre_msg: str, msg: str):
     # Print messages on the main message line and the preceding line.
-    _print_row(d.ROW_B_MSG, pre_msg)
+    _print_row(ROW['PRE_MSG'], pre_msg)
     _print_msg(msg)
 
 
 def _display_heap(highlight: int = -1):
     # Display the heap, optionally highlight a row (-1 for no highlight)
     for i, line in enumerate(_get_lines()):
-        row = d.ROW_D_HEAP + i
+        row = ROW['HEAP'] + i
         if row >= _n_rows():
             return
         attr = curses.A_REVERSE if i == highlight else curses.A_NORMAL
