@@ -4,11 +4,11 @@ Functions
 ---------
 init(window: curses.window, get_lines: StrIterFunc)
     Initialize the window.
-get_key_cmd(msg: str) -> int
+get_key_cmd(msg: str, idx: int) -> str:
     Return key from user input while displaying the command guide.
-get_key_cursor(prompt: str, highlight: int = -1) -> int
+get_key_cursor(prompt: str, highlight: int = -1) -> str
     Return key from user input while showing a prompt with a cursor.
-get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> int
+get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> str
     Return key from user input.
 """
 
@@ -128,13 +128,13 @@ def _do_get_key(print_prompt: VoidFunc,
             return chr(k)
 
 
-def get_key_cmd(msg: str) -> str:
+def get_key_cmd(msg: str, idx: int) -> str:
     """Return key from user input while displaying the command guide.
 
-    Display the given message.
+    Display a message and highlight a row (-1 for no highlight).
     """
     print_msg = lambda: _print_msg(msg)
-    return _do_get_key(_print_cmd_guide, print_msg)
+    return _do_get_key(_print_cmd_guide, print_msg, idx)
 
 
 def get_key_cursor(prompt: str, highlight: int = -1) -> str:

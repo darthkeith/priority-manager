@@ -2,20 +2,20 @@
 
 Functions
 ---------
-init(curses_window: 'curses.window', filename: str)
+init(curses_window: curses.window, filename: str) -> str
     Initialize the module.
-insert() -> tuple[bool, str]
+insert() -> tuple[bool, str, int]:
     Insert an item into the heap.
 delete() -> tuple[bool, str]
     Delete an item from the heap.
-move() -> tuple[bool, str]
+move() -> tuple[bool, str, int]:
     Delete then reinsert an item into the heap.
-rename() -> tuple[bool, str]
+rename() -> tuple[bool, str, int]
     Rename an item in the heap.
 query_save(filename: str) -> tuple[bool, str]
     Query if the user wants to save, and save to file if so.
-get_cmd(msg: str) -> str
-    Return a character from user input.
+get_cmd(msg: str, idx: int) -> str
+    Return key from user input while displaying the command guide.
 """
 
 from os.path import isfile
@@ -95,22 +95,22 @@ def _input_idx(prompt: str) -> int:
     return int(curr_str)
 
 
-def insert() -> tuple[bool, str]:
+def insert() -> tuple[bool, str, int]:
     """Insert an item into the heap.
 
-    Return tuple of completion indicator and result message.
+    Return tuple: (completion indicator, result message, item index).
     """
     name = _input_str(d.PROMPT_INSERT)
     if not name:
-        return False, d.MSG_CANCELED
-    heap.insert(name)
-    return True, d.MSG_INSERTED + name
+        return False, d.MSG_CANCELED, -1
+    idx = heap.insert(name)
+    return True, d.MSG_INSERTED + name, idx
 
 
 def delete() -> tuple[bool, str]:
     """Delete an item from the heap.
 
-    Return tuple of completion indicator and result message.
+    Return tuple: (completion indicator, result message).
     """
     if heap.is_empty():
         return False, d.MSG_EMPTY_HEAP
@@ -121,40 +121,40 @@ def delete() -> tuple[bool, str]:
     return True, d.MSG_DELETED + name
 
 
-def move() -> tuple[bool, str]:
+def move() -> tuple[bool, str, int]:
     """Delete then reinsert an item into the heap.
 
-    Return tuple of completion indicator and result message.
+    Return tuple: (completion indicator, result message, item index).
     """
     if heap.is_empty():
-        return False, d.MSG_EMPTY_HEAP
+        return False, d.MSG_EMPTY_HEAP, -1
     idx = _input_idx(d.PROMPT_MOVE)
     if idx == -1:
-        return False, d.MSG_CANCELED
-    name = heap.move(idx)
-    return True, d.MSG_MOVED + name
+        return False, d.MSG_CANCELED, -1
+    name, new_idx = heap.move(idx)
+    return True, d.MSG_MOVED + name, new_idx
 
 
-def rename() -> tuple[bool, str]:
+def rename() -> tuple[bool, str, int]:
     """Rename an item in the heap.
 
-    Return tuple of completion indicator and result message.
+    Return tuple: (completion indicator, result message, item index).
     """
     if heap.is_empty():
-        return False, d.MSG_EMPTY_HEAP
+        return False, d.MSG_EMPTY_HEAP, -1
     idx = _input_idx(d.PROMPT_RENAME_INDEX)
     if idx == -1:
-        return False, d.MSG_CANCELED
+        return False, d.MSG_CANCELED, -1
     name = _input_str(d.PROMPT_RENAME_NAME)
     if not name:
-        return False, d.MSG_CANCELED
+        return False, d.MSG_CANCELED, -1
     heap.rename(idx, name)
-    return True, d.MSG_RENAMED + name
+    return True, d.MSG_RENAMED + name, idx
 
 
 def _save(filename: str) -> tuple[bool, str]:
     # Attempt to save the heap as a text file.
-    # Return tuple of completion indicator and result message.
+    # Return tuple: (completion indicator, result message).
     def write(fname: str):
         with open(fname, 'w') as f:
             for line in heap.to_preorder():
@@ -177,7 +177,7 @@ def _save(filename: str) -> tuple[bool, str]:
 def query_save(filename: str) -> tuple[bool, str]:
     """Query if the user wants to save, and save to file if so.
 
-    Return tuple of completion indicator and result message.
+    Return tuple: (completion indicator, result message)
     """
     while True:
         key = window.get_key(d.PROMPT_SAVE)

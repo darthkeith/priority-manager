@@ -25,24 +25,27 @@ def parse_filename() -> str:
 def main(window: curses.window):
     filename = parse_filename()
     message = heap.init(window, filename)
+    idx = -1
+    altered = False
     dispatch = {'i': heap.insert,
-                'd': heap.delete,
+                'd': lambda: heap.delete() + (-1,),
                 'm': heap.move,
                 'r': heap.rename}
-    altered = False
     while True:
-        cmd = heap.get_cmd(message)
+        cmd = heap.get_cmd(message, idx)
         if cmd == 'q':
             if not altered:
                 return
             done, message = heap.query_save(filename)
             if done:
                 return
+            idx = -1
         elif cmd in dispatch:
-            change, message = dispatch[cmd]()
+            change, message, idx = dispatch[cmd]()
             altered = altered or change
         else:
             message = ''
+            idx = -1
 
 
 curses.wrapper(main)

@@ -6,11 +6,11 @@ init(is_higher: CompareStr, preorder: Iterator[str] = iter(['']))
     Initialize the heap.
 to_preorder() -> Iterator[str]
     Return the pre-order sequence of strings in the heap.
-insert(key: str)
-    Insert key into heap.
+insert(key: str) -> int:
+    Insert key into heap and return its index.
 delete(idx: int) -> str
     Delete node with given pre-order index and return its key.
-move(idx: int) -> str
+move(idx: int) -> tuple[str, int]:
     Delete then reinsert key of node with given pre-order index.
 rename(idx: int, name: str)
     Rename item with given pre-order index.
@@ -118,20 +118,23 @@ def to_preorder() -> Iterator[str]:
     return preorder(_root)
 
 
-def _merge_pair(x: _Node, y: _Node) -> _Node:
-    # Merge two heaps and return the new root (discard sibling references).
-    parent, child = (y, x) if _is_higher(y.key, x.key) else (x, y)
+def _merge_pair(x: _Node, y: _Node) -> tuple[_Node, bool]:
+    # Merge two heaps, discarding sibling references.
+    # Return the new root and whether node `x` is a parent of node `y`.
+    x_is_parent = _is_higher(x.key, y.key)
+    parent, child = (x, y) if x_is_parent else (y, x)
     new_child = child.with_sibling(parent.child)
-    return _Node(parent.key, new_child, None)
+    return _Node(parent.key, new_child, None), x_is_parent
 
 
-def insert(key: str):
-    """Insert key into heap."""
+def insert(key: str) -> int:
+    """Insert key into heap and return its index."""
     global _root
     if _root:
-        _root = _merge_pair(_root, _Node(key))
-    else:
-        _root = _Node(key)
+        _root, is_root = _merge_pair(_Node(key), _root)
+        return 0 if is_root else 1
+    _root = _Node(key)
+    return 0
 
 
 def _pair_siblings(node: MaybeNode) -> MaybeNode:
@@ -139,7 +142,7 @@ def _pair_siblings(node: MaybeNode) -> MaybeNode:
     if node == None or node.sibling == None:
         return node
     sibling = node.sibling.sibling
-    new_node =_merge_pair(node, node.sibling)
+    new_node, _ =_merge_pair(node, node.sibling)
     return new_node.with_sibling(_pair_siblings(sibling))
 
 
@@ -183,14 +186,14 @@ def delete(idx: int) -> str:
     return key
 
 
-def move(idx: int) -> str:
+def move(idx: int) -> tuple[str, int]:
     """Delete then reinsert key of node with given pre-order index.
 
-    Return key of target node.
+    Return key of target node and new index.
     """
     key = delete(idx)
-    insert(key)
-    return key
+    new_idx = insert(key)
+    return key, new_idx
 
 
 def rename(idx: int, name: str):
