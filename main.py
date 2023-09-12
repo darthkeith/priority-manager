@@ -26,7 +26,7 @@ def main(window: curses.window):
     filename = parse_filename()
     message = heap.init(window, filename)
     idx = -1
-    altered = False
+    is_altered = False
     dispatch = {'i': heap.insert,
                 'd': lambda: heap.delete() + (-1,),
                 'm': heap.move,
@@ -34,15 +34,15 @@ def main(window: curses.window):
     while True:
         cmd = heap.get_cmd(message, idx)
         if cmd == 'q':
-            if not altered:
+            if not is_altered:
                 return
             done, message = heap.query_save(filename)
             if done:
                 return
             idx = -1
         elif cmd in dispatch:
-            change, message, idx = dispatch[cmd]()
-            altered = altered or change
+            was_altered, message, idx = dispatch[cmd]()
+            is_altered = is_altered or was_altered
         else:
             message = ''
             idx = -1
