@@ -15,14 +15,14 @@ get_key(prompt: str = '', pre_msg: str = '', msg: str = '') -> str
 import curses
 from typing import Callable, Iterator
 
-from data import TEXT, ROW, ESC_DELAY
+from data import CMD_GUIDE, ROW, ESC_DELAY
+from colors import COLOR, init_colors
 
 # Type Aliases
 VoidFunc = Callable[[], None]
 StrIterFunc = Callable[[], Iterator[str]]
 
 # Global Variables
-_cmd_guide: curses.window = None
 _window: curses.window = None
 _get_lines: StrIterFunc = None
 
@@ -32,31 +32,13 @@ def init(window: curses.window, get_lines: StrIterFunc):
 
     Must be called before the other functions in the module are used.
     """
-    global _cmd_guide
     global _window
     global _get_lines
-    _cmd_guide = _build_cmd_guide()
     _window = window
     _get_lines = get_lines
+    init_colors()
+    _window.bkgd(COLOR['TEXT'])
     curses.set_escdelay(ESC_DELAY)
-
-
-def _build_cmd_guide() -> curses.window:
-    # Construct command guide to be overwritten on main window.
-    width = (sum(len(c) for c in TEXT['COMMANDS'])
-            + len(TEXT['SPACING']) * len(TEXT['COMMANDS'])
-            + 1)
-    pad = curses.newpad(1, width)
-    for cmd in TEXT['COMMANDS']:
-        pad.addstr(TEXT['SPACING'])
-        pad.addstr(cmd[0], curses.A_UNDERLINE)
-        pad.addstr(cmd[1:])
-    return pad
-
-
-def _print_cmd_guide():
-    # Print the command guide.
-    _cmd_guide.overwrite(_window)
 
 
 def _n_rows() -> int:
@@ -69,18 +51,30 @@ def _n_cols() -> int:
     return _window.getmaxyx()[1]
 
 
-def _print_row(row: int, msg: str, attr: int = curses.A_NORMAL):
-    # Print a string on a given row with an optional style applied.
+def _print_row(row: int, msg: str, color: int, highlight : bool = False):
+    # Print a string on a given row in a color with optional highlight.
     if row >= _n_rows():
         return
-    line = curses.newwin(1, len(msg) + 1, row, 0)
-    line.addstr(msg, attr)
+    attr = curses.A_REVERSE if highlight else curses.A_NORMAL
+    line = curses.newwin(1, max(_n_cols(), len(msg) + 1), row, 0)
+    line.addstr(msg)
+    line.chgat(0, 0, color | attr)
     line.overwrite(_window)
+
+
+def _print_cmd_guide():
+    # Print the command guide.
+    row, color = ROW['PROMPT'], COLOR['PROMPT']
+    _print_row(row, CMD_GUIDE['COMMANDS'], color)
+    for col in CMD_GUIDE['UNDERLINE_COLS']:
+        if col >= _n_cols():
+            return
+        _window.chgat(row, col, 1, color | curses.A_UNDERLINE)
 
 
 def _print_prompt(prompt: str):
     # Print a prompt message on the prompt line.
-    _print_row(ROW['PROMPT'], prompt)
+    _print_row(ROW['PROMPT'], prompt, COLOR['PROMPT'])
 
 
 def _print_prompt_cursor(prompt: str):
@@ -95,12 +89,12 @@ def _print_prompt_cursor(prompt: str):
 
 def _print_msg(msg: str):
     # Print a message on the main message line.
-    _print_row(ROW['MSG'], msg)
+    _print_row(ROW['MSG'], msg, COLOR['TEXT'])
 
 
 def _print_msgs(pre_msg: str, msg: str):
     # Print messages on the main message line and the preceding line.
-    _print_row(ROW['PRE_MSG'], pre_msg)
+    _print_row(ROW['PRE_MSG'], pre_msg, COLOR['TEXT'])
     _print_msg(msg)
 
 
@@ -110,8 +104,7 @@ def _display_heap(highlight: int = -1):
         row = ROW['HEAP'] + i
         if row >= _n_rows():
             return
-        attr = curses.A_REVERSE if i == highlight else curses.A_NORMAL
-        _print_row(row, line, attr)
+        _print_row(row, line, COLOR['TEXT'], i == highlight)
 
 
 def _do_get_key(print_prompt: VoidFunc,

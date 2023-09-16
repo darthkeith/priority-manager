@@ -1,6 +1,9 @@
-"""Data for comparison heap program."""
+"""Module for constants."""
 
+from typing import List
 import curses
+
+NO_COLORS_ERROR = "Terminal does not support colors."
 
 PROMPT = {
     'SELECT': "Select higher priority.",
@@ -15,6 +18,8 @@ PROMPT = {
 
 MESSAGE = {
     'OPENED': "Opened: ",
+    'LABEL_1': "(1) ",
+    'LABEL_2': "(2) ",
     'EMPTY_HEAP': "Heap is empty.",
     'CANCELED': "Canceled.",
     'INSERTED': "Inserted: ",
@@ -27,17 +32,29 @@ MESSAGE = {
     'NOT_SAVED': "Not saved."
 }
 
-TEXT = {
-    'LABEL1': "(1) ",
-    'LABEL2': "(2) ",
-    'SPACING': "    ",
-    'COMMANDS': ("insert", "delete", "move", "rename", "quit")
-}
-
 KEY = {
     'ESCAPE': chr(27),
     'BACKSPACE': chr(curses.KEY_BACKSPACE),
     'ENTER_KEYS': (chr(curses.KEY_ENTER), '\n', '\r')
+}
+
+_SPACING = ' ' * 4
+_COMMAND_LIST = ["insert", "delete", "move", "rename", "quit"]
+
+
+def get_underline_cols() -> List[int]:
+    # Return list of indices of first letters of commands to underline.
+    i = len(_SPACING)
+    underline_cols = []
+    for cmd in _COMMAND_LIST:
+        underline_cols.append(i)
+        i += len(cmd) + len(_SPACING)
+    return underline_cols
+
+
+CMD_GUIDE = {
+    'COMMANDS': _SPACING + _SPACING.join(_COMMAND_LIST),
+    'UNDERLINE_COLS': get_underline_cols()
 }
 
 ROW = {
@@ -47,5 +64,5 @@ ROW = {
     'HEAP': 4
 }
 
-ESC_DELAY = 25    # Delay after pressing escape key in milliseconds
+ESC_DELAY = 25    # Delay after pressing escape key, in milliseconds
 

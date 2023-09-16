@@ -22,7 +22,7 @@ from os.path import isfile
 
 import heap
 import window
-from data import PROMPT, MESSAGE, TEXT, KEY
+from data import PROMPT, MESSAGE, KEY
 
 
 def init(curses_window: 'curses.window', filename: str) -> str:
@@ -44,8 +44,8 @@ def init(curses_window: 'curses.window', filename: str) -> str:
 
 def _is_higher(item1: str, item2: str) -> bool:
     # Return True if item 1 is of higer priority than item 2.
-    line1 = TEXT['LABEL1'] + item1
-    line2 = TEXT['LABEL2'] + item2
+    line1 = MESSAGE['LABEL_1'] + item1
+    line2 = MESSAGE['LABEL_2'] + item2
     while True:
         key = window.get_key(PROMPT['SELECT'], line1, line2)
         if key == '1':
