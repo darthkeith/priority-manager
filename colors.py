@@ -3,7 +3,7 @@
 Functions
 ---------
 init_colors()
-    Initialize colors.
+    Initialize color pairs.
 
 Colors
 ------
@@ -17,8 +17,13 @@ COLOR : dict[str, int]
 """
 
 import curses
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+from typing import Iterator
 
-from data import NO_COLORS_ERROR
+from data import DEFAULT_CONFIG_FILE, NO_COLORS_ERROR
 
 COLOR = {
     'PROMPT': 0,
@@ -26,7 +31,7 @@ COLOR = {
 }
 
 
-def _make_counter(i):
+def _make_counter(i: int) -> Iterator[int]:
     while True:
         yield i
         i += 1
@@ -35,31 +40,50 @@ def _make_counter(i):
 _color_counter = _make_counter(1)
 _pair_counter = _make_counter(1)
 
+_color_IDs = {
+    'prompt':    next(_color_counter),
+    'prompt_bg': next(_color_counter),
+    'text':      next(_color_counter),
+    'text_bg':   next(_color_counter)
+}
 
-def _make_pair(foreground, background):
+
+def _make_pair(foreground: int, background: int) -> int:
+    # Return color pair attribute given foreground/background color IDs.
     i = next(_pair_counter)
     curses.init_pair(i, foreground, background)
     return curses.color_pair(i)
 
 
-_PROMPT = next(_color_counter)
-_PROMPT_BG = next(_color_counter)
-_TEXT = next(_color_counter)
-_TEXT_BG = next(_color_counter)
+def _hex_to_1000(hex_color: str) -> tuple[int, int, int]:
+    # Convert 24-bit color hex string to RGB values in range [0, 1000].
+    def do_convert(component: str) -> int:
+        return round(int(component, 16) * 1000 / 255)
+    return tuple(do_convert(hex_color[i:i+2]) for i in (0, 2, 4))
+
+
+def _parse_config():
+    # Parse config file to initialize individual colors.
+    with open(DEFAULT_CONFIG_FILE, "rb") as f:
+        config = tomllib.load(f)
+    color_scheme = config['color_schemes'][config['color_scheme']]
+    color_hex_codes = config['colors']
+    for feature in _color_IDs.keys():
+        color_name = color_scheme[feature]
+        color_hex = color_hex_codes[color_name]
+        r, g, b = _hex_to_1000(color_hex)
+        curses.init_color(_color_IDs[feature], r, g, b)
 
 
 def init_colors():
-    """Initialize colors."""
+    """Initialize color pairs."""
     if not curses.has_colors():
         raise RuntimeError(NO_COLORS_ERROR)
     curses.start_color()
     if not curses.can_change_color():
         curses.use_default_colors()
         return
-    curses.init_color(_PROMPT, 961, 376, 220)      # F56038
-    curses.init_color(_PROMPT_BG, 39, 184, 208)    # 0A2F35
-    curses.init_color(_TEXT, 969, 639, 145)        # F7A325
-    curses.init_color(_TEXT_BG, 71, 286, 184)      # 12492F
-    COLOR['PROMPT'] = _make_pair(_PROMPT, _PROMPT_BG)
-    COLOR['TEXT'] = _make_pair(_TEXT, _TEXT_BG)
+    _parse_config()
+    COLOR['PROMPT'] = _make_pair(_color_IDs['prompt'], _color_IDs['prompt_bg'])
+    COLOR['TEXT'] = _make_pair(_color_IDs['text'], _color_IDs['text_bg'])
 

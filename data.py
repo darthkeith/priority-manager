@@ -1,7 +1,11 @@
 """Module for constants."""
 
 from typing import List
+import os
 import curses
+
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_CONFIG_FILE = os.path.join(_script_dir, "config.default.toml")
 
 NO_COLORS_ERROR = "Terminal does not support colors."
 
@@ -42,8 +46,8 @@ _SPACING = ' ' * 4
 _COMMAND_LIST = ["insert", "delete", "move", "rename", "quit"]
 
 
-def get_underline_cols() -> List[int]:
-    # Return list of indices of first letters of commands to underline.
+def _get_underline_cols() -> List[int]:
+    # Return indices of first letters of commands to underline.
     i = len(_SPACING)
     underline_cols = []
     for cmd in _COMMAND_LIST:
@@ -54,7 +58,7 @@ def get_underline_cols() -> List[int]:
 
 CMD_GUIDE = {
     'COMMANDS': _SPACING + _SPACING.join(_COMMAND_LIST),
-    'UNDERLINE_COLS': get_underline_cols()
+    'UNDERLINE_COLS': _get_underline_cols()
 }
 
 ROW = {

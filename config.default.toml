@@ -1,0 +1,16 @@
+color_scheme = "default"
+
+[colors]
+vermillion_orange = "F56038"
+black_chasm       = "0A2F35"
+radiant_yellow    = "F7A325"
+zucchini          = "12492F"
+
+[color_schemes]
+
+[color_schemes.default]
+prompt    = "vermillion_orange"
+prompt_bg = "black_chasm"
+text      = "radiant_yellow"
+text_bg   = "zucchini"
+
